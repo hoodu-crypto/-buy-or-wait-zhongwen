@@ -10,7 +10,7 @@ const SUPABASE_URL =
   "https://swjypbofbgejuavxwxgo.supabase.co";
 
 const SUPABASE_PUBLISHABLE_KEY =
-  "sb_publishable_CfKI5T8tdDRsi9OywfHqvQ_mLwzaIqh";
+  "sb_publishable_CfKI5T8tdDRsj9OywffHqvQ_mLwzqlgh";
 
 const TABLE = "bow_want_items";
 const BUCKET = "bow-want-photos";
@@ -232,6 +232,7 @@ const I18N = {
     findsKicker: "♡ YOUR VERY OWN COLLECTION",
     findsTitle: 'My little finds<span class="sparkle">✳</span>',
     findsDesc: 'All the things that made you stop and say “aww!”',
+
     add: "＋ ADD A FIND",
     all: "ALL FINDS",
     waiting: "STILL THINKING",
@@ -409,6 +410,10 @@ function formatPrice(value, currency = "KRW") {
     : `${number.toLocaleString()} ${currency}`;
 }
 
+/* ==========================================
+   LOCAL BACKUP
+========================================== */
+
 function getLocalBackup() {
   try {
     const data = JSON.parse(
@@ -427,6 +432,10 @@ function saveLocalBackup() {
     console.warn(error);
   }
 }
+
+/* ==========================================
+   PHOTO URL
+========================================== */
 
 function getPhotoURL(path) {
   if (!path) return "";
@@ -454,6 +463,10 @@ function normalizeItem(row) {
     createdAt: row.created_at || ""
   };
 }
+
+/* ==========================================
+   RENDER WISHLIST
+========================================== */
 
 function render() {
   const grid = $("findsGrid");
@@ -586,6 +599,10 @@ function loadSupabaseLibrary() {
   });
 }
 
+/* ==========================================
+   SUPABASE CONNECTION
+========================================== */
+
 async function initializeSupabase() {
   cloudReady = false;
 
@@ -656,6 +673,10 @@ async function ensureCloudConnection() {
   );
 }
 
+/* ==========================================
+   LOAD CLOUD FINDS
+========================================== */
+
 async function loadCloudFinds() {
   if (!supabaseClient || !currentUser) {
     throw new Error("Not signed in");
@@ -724,7 +745,24 @@ function shrinkImage(file) {
 }
 
 async function uploadPhoto(blob) {
-  const path = `${currentUser.id}/${crypto.randomUUID()}.jpg`;
+  if (!supabaseClient || !currentUser?.id) {
+    throw new Error("Not signed in");
+  }
+
+  const {
+    data: { user },
+    error: authError
+  } = await supabaseClient.auth.getUser();
+
+  if (authError || !user) {
+    throw new Error(
+      `Photo upload authentication: ${authError?.message || "Session unavailable"}`
+    );
+  }
+
+  currentUser = user;
+
+  const path = `${user.id}/${crypto.randomUUID()}.jpg`;
 
   const { error } = await supabaseClient.storage
     .from(BUCKET)
@@ -733,7 +771,9 @@ async function uploadPhoto(blob) {
       upsert: false
     });
 
-  if (error) throw new Error(`Photo upload: ${error.message}`);
+  if (error) {
+    throw new Error(`Photo upload: ${error.message}`);
+  }
 
   return path;
 }
@@ -851,8 +891,10 @@ async function saveNewFind(event) {
       behavior: "smooth",
       block: "start"
     });
+
   } catch (error) {
     console.error("Save failed:", error);
+
     formError(`${t("saveError")}: ${error.message}`);
 
     if (photoPath && !inserted && supabaseClient) {
@@ -864,6 +906,7 @@ async function saveNewFind(event) {
         console.warn(cleanupError);
       }
     }
+
   } finally {
     setBusy(false);
   }
@@ -1106,10 +1149,11 @@ function initializeEvents() {
     }
   });
 
-  $("drawerItems")?.addEventListener(
-    "click",
-    handleItemClick
-  );
+  $("drawerItems")?.addEventListener("click", handleItemClick);
+
+  /* ==========================================
+     FILTER BUTTONS
+  ========================================== */
 
   document.querySelectorAll(".filter").forEach((button) => {
     button.addEventListener("click", () => {
@@ -1123,12 +1167,20 @@ function initializeEvents() {
     });
   });
 
+  /* ==========================================
+     LANGUAGE SWITCH
+  ========================================== */
+
   document.querySelectorAll(".language-switch button")
     .forEach((button) => {
       button.addEventListener("click", () => {
         applyLanguage(button.dataset.lang);
       });
     });
+
+  /* ==========================================
+     ESCAPE KEY
+  ========================================== */
 
   document.addEventListener("keydown", (event) => {
     if (
