@@ -10,7 +10,7 @@ const SUPABASE_URL =
   "https://swjypbofbgejuavxwxgo.supabase.co";
 
 const SUPABASE_PUBLISHABLE_KEY =
-  "sb_publishable_CfKI5T8tdDRsj9OywffHqvQ_mLwzqlgh";
+  "sb_publishable_CfKI5T8tdDRsi9OywfHqvQ_mLwzaIqh";
 
 const TABLE = "bow_want_items";
 const BUCKET = "bow-want-photos";
@@ -181,7 +181,7 @@ const I18N = {
     catOther: "其他可爱小物",
     statusWaiting: "♡ 考虑中",
     statusBought: "✓ 已购买",
-    markBought: "✓ 标记已购买",
+    markBought: "↶ 重新考虑",
     markWaiting: "↶ 重新考虑",
     remove: "删除",
     emptyTitle: "这里还没有收藏哦！",
@@ -232,7 +232,6 @@ const I18N = {
     findsKicker: "♡ YOUR VERY OWN COLLECTION",
     findsTitle: 'My little finds<span class="sparkle">✳</span>',
     findsDesc: 'All the things that made you stop and say “aww!”',
-
     add: "＋ ADD A FIND",
     all: "ALL FINDS",
     waiting: "STILL THINKING",
@@ -389,6 +388,7 @@ function applyLanguage(lang) {
   }
 
   setBusy(busy);
+
   render();
 }
 
@@ -477,10 +477,21 @@ function render() {
   const waiting = finds.filter((x) => !x.bought).length;
   const bought = finds.length - waiting;
 
-  if ($("wishlistCount")) $("wishlistCount").textContent = waiting;
-  if ($("drawerCount")) $("drawerCount").textContent = waiting;
-  if ($("waitingTotal")) $("waitingTotal").textContent = waiting;
-  if ($("boughtTotal")) $("boughtTotal").textContent = bought;
+  if ($("wishlistCount")) {
+    $("wishlistCount").textContent = waiting;
+  }
+
+  if ($("drawerCount")) {
+    $("drawerCount").textContent = waiting;
+  }
+
+  if ($("waitingTotal")) {
+    $("waitingTotal").textContent = waiting;
+  }
+
+  if ($("boughtTotal")) {
+    $("boughtTotal").textContent = bought;
+  }
 
   const visible = finds.filter((x) => {
     if (filter === "all") return true;
@@ -507,12 +518,20 @@ function render() {
             ${item.bought ? t("statusBought") : t("statusWaiting")}
           </span>
           <div class="find-actions">
-            <button type="button" class="mini-button"
-              data-action="toggle" data-id="${escapeHTML(item.id)}">
+            <button
+              type="button"
+              class="mini-button"
+              data-action="toggle"
+              data-id="${escapeHTML(item.id)}"
+            >
               ${item.bought ? t("markWaiting") : t("markBought")}
             </button>
-            <button type="button" class="mini-button"
-              data-action="remove" data-id="${escapeHTML(item.id)}">
+            <button
+              type="button"
+              class="mini-button"
+              data-action="remove"
+              data-id="${escapeHTML(item.id)}"
+            >
               ${t("remove")}
             </button>
           </div>
@@ -523,9 +542,15 @@ function render() {
     grid.innerHTML = `
       <div class="empty-finds">
         <div class="empty-icon">♡</div>
-        <h3>${filter === "all" ? t("emptyTitle") : t("emptyFiltered")}</h3>
+        <h3>
+          ${filter === "all" ? t("emptyTitle") : t("emptyFiltered")}
+        </h3>
         <p>${t("emptyDesc")}</p>
-        <button type="button" class="btn btn-yellow" id="emptyUpload">
+        <button
+          type="button"
+          class="btn btn-yellow"
+          id="emptyUpload"
+        >
           ${t("emptyButton")}
         </button>
       </div>
@@ -546,14 +571,24 @@ function render() {
             · ${escapeHTML(formatPrice(item.price, item.currency))}
           </small>
           <br>
-          <small>${item.bought ? t("statusBought") : t("statusWaiting")}</small>
+          <small>
+            ${item.bought ? t("statusBought") : t("statusWaiting")}
+          </small>
           <div class="drawer-item-actions">
-            <button type="button" data-action="toggle"
-              data-id="${escapeHTML(item.id)}">
+            <button
+              type="button"
+              data-action="toggle"
+              data-id="${escapeHTML(item.id)}"
+            >
               ${item.bought ? t("markWaiting") : t("markBought")}
             </button>
-            <button type="button" data-action="remove"
-              data-id="${escapeHTML(item.id)}">${t("remove")}</button>
+            <button
+              type="button"
+              data-action="remove"
+              data-id="${escapeHTML(item.id)}"
+            >
+              ${t("remove")}
+            </button>
           </div>
         </div>
       </div>
@@ -569,7 +604,7 @@ function render() {
 }
 
 /* ==========================================
-   LOAD SUPABASE
+   LOAD SUPABASE LIBRARY
 ========================================== */
 
 function loadSupabaseLibrary() {
@@ -580,6 +615,7 @@ function loadSupabaseLibrary() {
     }
 
     const script = document.createElement("script");
+
     script.src =
       "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js";
 
@@ -587,12 +623,16 @@ function loadSupabaseLibrary() {
       if (window.supabase?.createClient) {
         resolve();
       } else {
-        reject(new Error("Supabase library unavailable"));
+        reject(
+          new Error("Supabase library unavailable")
+        );
       }
     };
 
     script.onerror = () => {
-      reject(new Error("Supabase library could not be loaded"));
+      reject(
+        new Error("Supabase library could not be loaded")
+      );
     };
 
     document.head.appendChild(script);
@@ -623,14 +663,19 @@ async function initializeSupabase() {
 
     const result = await supabaseClient.auth.getSession();
 
-    if (result.error) throw result.error;
+    if (result.error) {
+      throw result.error;
+    }
 
     let session = result.data.session;
 
     if (!session) {
-      const login = await supabaseClient.auth.signInAnonymously();
+      const login =
+        await supabaseClient.auth.signInAnonymously();
 
-      if (login.error) throw login.error;
+      if (login.error) {
+        throw login.error;
+      }
 
       session = login.data.session;
     }
@@ -644,32 +689,47 @@ async function initializeSupabase() {
     await loadCloudFinds();
 
     cloudReady = true;
+
     notify(t("connected"));
 
     console.log(
       "[BUY OR WAIT?] Connected:",
       currentUser.id
     );
+
   } catch (error) {
-    console.error("Supabase connection error:", error);
+    console.error(
+      "Supabase connection error:",
+      error
+    );
 
     cloudReady = false;
+
     finds = getLocalBackup();
+
     render();
 
-    notify(`${t("connectionError")}: ${error.message}`);
+    notify(
+      `${t("connectionError")}: ${error.message}`
+    );
   }
 }
 
 async function ensureCloudConnection() {
-  if (cloudReady && currentUser && supabaseClient) {
+  if (
+    cloudReady &&
+    currentUser &&
+    supabaseClient
+  ) {
     return true;
   }
 
   await initializeSupabase();
 
   return Boolean(
-    cloudReady && currentUser && supabaseClient
+    cloudReady &&
+    currentUser &&
+    supabaseClient
   );
 }
 
@@ -686,12 +746,18 @@ async function loadCloudFinds() {
     .from(TABLE)
     .select("*")
     .eq("user_id", currentUser.id)
-    .order("created_at", { ascending: false });
+    .order("created_at", {
+      ascending: false
+    });
 
-  if (error) throw error;
+  if (error) {
+    throw error;
+  }
 
   finds = (data || []).map(normalizeItem);
+
   saveLocalBackup();
+
   render();
 }
 
@@ -702,33 +768,62 @@ async function loadCloudFinds() {
 function shrinkImage(file) {
   return new Promise((resolve, reject) => {
     const image = new Image();
+
     const url = URL.createObjectURL(file);
 
     image.onload = () => {
       try {
         const scale = Math.min(
           1,
-          850 / Math.max(image.width, image.height)
+          850 / Math.max(
+            image.width,
+            image.height
+          )
         );
 
-        const canvas = document.createElement("canvas");
-        canvas.width = Math.max(1, Math.round(image.width * scale));
-        canvas.height = Math.max(1, Math.round(image.height * scale));
+        const canvas =
+          document.createElement("canvas");
+
+        canvas.width = Math.max(
+          1,
+          Math.round(image.width * scale)
+        );
+
+        canvas.height = Math.max(
+          1,
+          Math.round(image.height * scale)
+        );
 
         const context = canvas.getContext("2d");
 
-        if (!context) throw new Error("Canvas unavailable");
+        if (!context) {
+          throw new Error("Canvas unavailable");
+        }
 
         context.drawImage(
-          image, 0, 0, canvas.width, canvas.height
+          image,
+          0,
+          0,
+          canvas.width,
+          canvas.height
         );
 
         URL.revokeObjectURL(url);
 
-        canvas.toBlob((blob) => {
-          if (blob) resolve(blob);
-          else reject(new Error("Image conversion failed"));
-        }, "image/jpeg", 0.75);
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              resolve(blob);
+            } else {
+              reject(
+                new Error("Image conversion failed")
+              );
+            }
+          },
+          "image/jpeg",
+          0.75
+        );
+
       } catch (error) {
         URL.revokeObjectURL(url);
         reject(error);
@@ -737,7 +832,10 @@ function shrinkImage(file) {
 
     image.onerror = () => {
       URL.revokeObjectURL(url);
-      reject(new Error("Cannot read image"));
+
+      reject(
+        new Error("Cannot read image")
+      );
     };
 
     image.src = url;
@@ -745,7 +843,10 @@ function shrinkImage(file) {
 }
 
 async function uploadPhoto(blob) {
-  if (!supabaseClient || !currentUser?.id) {
+  if (
+    !supabaseClient ||
+    !currentUser?.id
+  ) {
     throw new Error("Not signed in");
   }
 
@@ -756,13 +857,16 @@ async function uploadPhoto(blob) {
 
   if (authError || !user) {
     throw new Error(
-      `Photo upload authentication: ${authError?.message || "Session unavailable"}`
+      `Photo upload authentication: ${
+        authError?.message || "Session unavailable"
+      }`
     );
   }
 
   currentUser = user;
 
-  const path = `${user.id}/${crypto.randomUUID()}.jpg`;
+  const path =
+    `${user.id}/${crypto.randomUUID()}.jpg`;
 
   const { error } = await supabaseClient.storage
     .from(BUCKET)
@@ -772,7 +876,9 @@ async function uploadPhoto(blob) {
     });
 
   if (error) {
-    throw new Error(`Photo upload: ${error.message}`);
+    throw new Error(
+      `Photo upload: ${error.message}`
+    );
   }
 
   return path;
@@ -781,11 +887,13 @@ async function uploadPhoto(blob) {
 function clearPhotoPreview() {
   if (photoPreviewURL) {
     URL.revokeObjectURL(photoPreviewURL);
+
     photoPreviewURL = "";
   }
 
   if ($("photoPreview")) {
     $("photoPreview").hidden = true;
+
     $("photoPreview").removeAttribute("src");
   }
 
@@ -795,7 +903,7 @@ function clearPhotoPreview() {
 }
 
 /* ==========================================
-   SAVE ITEM
+   SAVE NEW FIND
 ========================================== */
 
 async function saveNewFind(event) {
@@ -825,17 +933,23 @@ async function saveNewFind(event) {
 
     if (file) {
       if (
-        !["image/jpeg", "image/png", "image/webp"].includes(file.type) ||
+        ![
+          "image/jpeg",
+          "image/png",
+          "image/webp"
+        ].includes(file.type) ||
         file.size > 5 * 1024 * 1024
       ) {
         throw new Error(t("imageInvalid"));
       }
 
       const blob = await shrinkImage(file);
+
       photoPath = await uploadPhoto(blob);
     }
 
-    const priceText = $("itemPrice")?.value.trim() || "";
+    const priceText =
+      $("itemPrice")?.value.trim() || "";
 
     const price = priceText === ""
       ? null
@@ -843,7 +957,10 @@ async function saveNewFind(event) {
 
     if (
       price !== null &&
-      (!Number.isFinite(price) || price < 0)
+      (
+        !Number.isFinite(price) ||
+        price < 0
+      )
     ) {
       throw new Error("Invalid price");
     }
@@ -851,10 +968,13 @@ async function saveNewFind(event) {
     const item = {
       user_id: currentUser.id,
       item_name: name,
-      category: $("itemCategory")?.value || "Other cute things",
+      category:
+        $("itemCategory")?.value ||
+        "Other cute things",
       price,
       currency: "KRW",
-      note: $("itemNote")?.value.trim() || "",
+      note:
+        $("itemNote")?.value.trim() || "",
       photo_path: photoPath || null,
       status: "waiting"
     };
@@ -866,17 +986,23 @@ async function saveNewFind(event) {
       .single();
 
     if (error) {
-      throw new Error(`Database: ${error.message}`);
+      throw new Error(
+        `Database: ${error.message}`
+      );
     }
 
     inserted = true;
 
     finds.unshift(normalizeItem(data));
+
     saveLocalBackup();
+
     render();
 
     $("uploadForm").reset();
+
     clearPhotoPreview();
+
     closeUpload();
 
     notify(t("saved"));
@@ -884,7 +1010,10 @@ async function saveNewFind(event) {
     try {
       await loadCloudFinds();
     } catch (error) {
-      console.warn("Saved, but refresh failed:", error);
+      console.warn(
+        "Saved, but refresh failed:",
+        error
+      );
     }
 
     $("finds")?.scrollIntoView({
@@ -895,13 +1024,20 @@ async function saveNewFind(event) {
   } catch (error) {
     console.error("Save failed:", error);
 
-    formError(`${t("saveError")}: ${error.message}`);
+    formError(
+      `${t("saveError")}: ${error.message}`
+    );
 
-    if (photoPath && !inserted && supabaseClient) {
+    if (
+      photoPath &&
+      !inserted &&
+      supabaseClient
+    ) {
       try {
         await supabaseClient.storage
           .from(BUCKET)
           .remove([photoPath]);
+
       } catch (cleanupError) {
         console.warn(cleanupError);
       }
@@ -936,7 +1072,9 @@ async function handleItemClick(event) {
     setBusy(true);
 
     try {
-      const status = item.bought ? "waiting" : "bought";
+      const status = item.bought
+        ? "waiting"
+        : "bought";
 
       const { error } = await supabaseClient
         .from(TABLE)
@@ -953,8 +1091,12 @@ async function handleItemClick(event) {
           ? t("markedBought")
           : t("markedWaiting")
       );
+
     } catch (error) {
-      notify(`${t("updateError")}: ${error.message}`);
+      notify(
+        `${t("updateError")}: ${error.message}`
+      );
+
     } finally {
       setBusy(false);
     }
@@ -977,16 +1119,23 @@ async function handleItemClick(event) {
       await loadCloudFinds();
 
       if (item.photoPath) {
-        const { error: photoError } = await supabaseClient.storage
-          .from(BUCKET)
-          .remove([item.photoPath]);
+        const { error: photoError } =
+          await supabaseClient.storage
+            .from(BUCKET)
+            .remove([item.photoPath]);
 
-        if (photoError) console.warn(photoError);
+        if (photoError) {
+          console.warn(photoError);
+        }
       }
 
       notify(t("removed"));
+
     } catch (error) {
-      notify(`${t("deleteError")}: ${error.message}`);
+      notify(
+        `${t("deleteError")}: ${error.message}`
+      );
+
     } finally {
       setBusy(false);
     }
@@ -999,12 +1148,19 @@ async function handleItemClick(event) {
 
 function openDrawer() {
   const el = $("wishlistDrawer");
+
   if (!el) return;
 
   el.classList.add("open");
-  el.setAttribute("aria-hidden", "false");
 
-  if ($("overlay")) $("overlay").hidden = false;
+  el.setAttribute(
+    "aria-hidden",
+    "false"
+  );
+
+  if ($("overlay")) {
+    $("overlay").hidden = false;
+  }
 
   document.body.classList.add("locked");
 }
@@ -1014,10 +1170,16 @@ function closeDrawer() {
 
   if (el) {
     el.classList.remove("open");
-    el.setAttribute("aria-hidden", "true");
+
+    el.setAttribute(
+      "aria-hidden",
+      "true"
+    );
   }
 
-  if ($("overlay")) $("overlay").hidden = true;
+  if ($("overlay")) {
+    $("overlay").hidden = true;
+  }
 
   document.body.classList.remove("locked");
 }
@@ -1031,7 +1193,9 @@ function openUpload() {
 
   if (!dialog) return;
 
-  if (!dialog.open) dialog.showModal();
+  if (!dialog.open) {
+    dialog.showModal();
+  }
 
   document.body.classList.add("locked");
 }
@@ -1039,14 +1203,22 @@ function openUpload() {
 function closeUpload() {
   const dialog = $("uploadDialog");
 
-  if (dialog?.open) dialog.close();
+  if (dialog?.open) {
+    dialog.close();
+  }
 
   document.body.classList.remove("locked");
 }
 
 function bindClick(id, handler) {
   const element = $(id);
-  if (element) element.addEventListener("click", handler);
+
+  if (element) {
+    element.addEventListener(
+      "click",
+      handler
+    );
+  }
 }
 
 /* ==========================================
@@ -1054,13 +1226,25 @@ function bindClick(id, handler) {
 ========================================== */
 
 function initializeEvents() {
-  ["openWishlist", "heroWishlist", "stepWishlist"]
-    .forEach((id) => bindClick(id, openDrawer));
+  [
+    "openWishlist",
+    "heroWishlist",
+    "stepWishlist"
+  ].forEach((id) => {
+    bindClick(id, openDrawer);
+  });
 
-  ["closeWishlist", "drawerCloseBottom"]
-    .forEach((id) => bindClick(id, closeDrawer));
+  [
+    "closeWishlist",
+    "drawerCloseBottom"
+  ].forEach((id) => {
+    bindClick(id, closeDrawer);
+  });
 
-  bindClick("overlay", closeDrawer);
+  bindClick(
+    "overlay",
+    closeDrawer
+  );
 
   [
     "uploadTop",
@@ -1068,138 +1252,228 @@ function initializeEvents() {
     "stepUpload",
     "findsUpload",
     "drawerUpload"
-  ].forEach((id) => bindClick(id, openUpload));
+  ].forEach((id) => {
+    bindClick(id, openUpload);
+  });
 
-  bindClick("closeUpload", closeUpload);
+  bindClick(
+    "closeUpload",
+    closeUpload
+  );
 
-  ["roomNav", "roomMobile", "roomButton"]
-    .forEach((id) => bindClick(id, () => {
+  [
+    "roomNav",
+    "roomMobile",
+    "roomButton"
+  ].forEach((id) => {
+    bindClick(id, () => {
       notify(t("roomNotice"));
-    }));
+    });
+  });
 
   bindClick("menuButton", () => {
     const menu = $("mobileNav");
+
     if (!menu) return;
 
     menu.hidden = !menu.hidden;
 
-    $("menuButton").setAttribute(
+    $("menuButton")?.setAttribute(
       "aria-expanded",
       String(!menu.hidden)
     );
   });
 
-  $("mobileNav")?.querySelectorAll("a").forEach((link) => {
-    link.addEventListener("click", () => {
-      $("mobileNav").hidden = true;
-      $("menuButton")?.setAttribute("aria-expanded", "false");
+  $("mobileNav")
+    ?.querySelectorAll("a")
+    .forEach((link) => {
+      link.addEventListener("click", () => {
+        $("mobileNav").hidden = true;
+
+        $("menuButton")?.setAttribute(
+          "aria-expanded",
+          "false"
+        );
+      });
     });
-  });
 
-  $("uploadDialog")?.addEventListener("close", () => {
-    document.body.classList.remove("locked");
-  });
-
-  $("uploadDialog")?.addEventListener("click", (event) => {
-    if (event.target === $("uploadDialog")) {
-      closeUpload();
+  $("uploadDialog")?.addEventListener(
+    "close",
+    () => {
+      document.body.classList.remove(
+        "locked"
+      );
     }
-  });
+  );
 
-  $("uploadForm")?.addEventListener("submit", saveNewFind);
-
-  $("itemPhoto")?.addEventListener("change", async (event) => {
-    const file = event.target.files?.[0];
-
-    if (!file) return;
-
-    if (
-      !["image/jpeg", "image/png", "image/webp"].includes(file.type) ||
-      file.size > 5 * 1024 * 1024
-    ) {
-      formError(t("imageInvalid"));
-      event.target.value = "";
-      return;
+  $("uploadDialog")?.addEventListener(
+    "click",
+    (event) => {
+      if (
+        event.target === $("uploadDialog")
+      ) {
+        closeUpload();
+      }
     }
+  );
 
-    try {
-      const blob = await shrinkImage(file);
+  $("uploadForm")?.addEventListener(
+    "submit",
+    saveNewFind
+  );
 
-      if (photoPreviewURL) {
-        URL.revokeObjectURL(photoPreviewURL);
+  /* ==========================================
+     PHOTO PREVIEW
+  ========================================== */
+
+  $("itemPhoto")?.addEventListener(
+    "change",
+    async (event) => {
+      const file = event.target.files?.[0];
+
+      if (!file) return;
+
+      if (
+        ![
+          "image/jpeg",
+          "image/png",
+          "image/webp"
+        ].includes(file.type) ||
+        file.size > 5 * 1024 * 1024
+      ) {
+        formError(t("imageInvalid"));
+
+        event.target.value = "";
+
+        return;
       }
 
-      photoPreviewURL = URL.createObjectURL(blob);
+      try {
+        const blob = await shrinkImage(file);
 
-      $("photoPreview").src = photoPreviewURL;
-      $("photoPreview").hidden = false;
-      $("photoPrompt").hidden = true;
+        if (photoPreviewURL) {
+          URL.revokeObjectURL(
+            photoPreviewURL
+          );
+        }
 
-      formError("");
-    } catch (error) {
-      formError(t("imageError"));
+        photoPreviewURL =
+          URL.createObjectURL(blob);
+
+        $("photoPreview").src =
+          photoPreviewURL;
+
+        $("photoPreview").hidden = false;
+
+        $("photoPrompt").hidden = true;
+
+        formError("");
+
+      } catch (error) {
+        formError(t("imageError"));
+      }
     }
-  });
+  );
 
-  $("findsGrid")?.addEventListener("click", (event) => {
-    if (event.target.closest("#emptyUpload")) {
-      openUpload();
-    } else {
-      handleItemClick(event);
+  /* ==========================================
+     FIND CARD BUTTONS
+  ========================================== */
+
+  $("findsGrid")?.addEventListener(
+    "click",
+    (event) => {
+      if (
+        event.target.closest(
+          "#emptyUpload"
+        )
+      ) {
+        openUpload();
+      } else {
+        handleItemClick(event);
+      }
     }
-  });
+  );
 
-  $("drawerItems")?.addEventListener("click", handleItemClick);
+  $("drawerItems")?.addEventListener(
+    "click",
+    handleItemClick
+  );
 
   /* ==========================================
      FILTER BUTTONS
   ========================================== */
 
-  document.querySelectorAll(".filter").forEach((button) => {
-    button.addEventListener("click", () => {
-      filter = button.dataset.filter || "all";
+  document
+    .querySelectorAll(".filter")
+    .forEach((button) => {
+      button.addEventListener(
+        "click",
+        () => {
+          filter =
+            button.dataset.filter || "all";
 
-      document.querySelectorAll(".filter").forEach((el) => {
-        el.classList.toggle("active", el === button);
-      });
+          document
+            .querySelectorAll(".filter")
+            .forEach((el) => {
+              el.classList.toggle(
+                "active",
+                el === button
+              );
+            });
 
-      render();
+          render();
+        }
+      );
     });
-  });
 
   /* ==========================================
      LANGUAGE SWITCH
   ========================================== */
 
-  document.querySelectorAll(".language-switch button")
+  document
+    .querySelectorAll(
+      ".language-switch button"
+    )
     .forEach((button) => {
-      button.addEventListener("click", () => {
-        applyLanguage(button.dataset.lang);
-      });
+      button.addEventListener(
+        "click",
+        () => {
+          applyLanguage(
+            button.dataset.lang
+          );
+        }
+      );
     });
 
   /* ==========================================
      ESCAPE KEY
   ========================================== */
 
-  document.addEventListener("keydown", (event) => {
-    if (
-      event.key === "Escape" &&
-      $("wishlistDrawer")?.classList.contains("open")
-    ) {
-      closeDrawer();
+  document.addEventListener(
+    "keydown",
+    (event) => {
+      if (
+        event.key === "Escape" &&
+        $("wishlistDrawer")
+          ?.classList.contains("open")
+      ) {
+        closeDrawer();
+      }
     }
-  });
+  );
 }
 
 /* ==========================================
-   START
+   START APPLICATION
 ========================================== */
 
 function startApplication() {
   try {
     currentLang =
-      localStorage.getItem(LANGUAGE_KEY) || "ko";
+      localStorage.getItem(
+        LANGUAGE_KEY
+      ) || "ko";
+
   } catch {
     currentLang = "ko";
   }
@@ -1207,12 +1481,19 @@ function startApplication() {
   finds = getLocalBackup();
 
   initializeEvents();
+
   applyLanguage(currentLang);
 
   initializeSupabase();
 }
 
-if (document.readyState === "loading") {
+/* ==========================================
+   DOM READY
+========================================== */
+
+if (
+  document.readyState === "loading"
+) {
   document.addEventListener(
     "DOMContentLoaded",
     startApplication
@@ -1220,3 +1501,7 @@ if (document.readyState === "loading") {
 } else {
   startApplication();
 }
+
+/* ==========================================
+   END OF SCRIPT.JS
+========================================== */
