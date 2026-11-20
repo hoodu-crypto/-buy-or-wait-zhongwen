@@ -306,431 +306,643 @@ const CATEGORY_KEYS = {
   "Other cute things": "catOther"
 };
 
+/* ==========================================
+   PART 2 / 7
+   LANGUAGE, DATA AND UI HELPERS
+========================================== */
+
 function t(key) {
-  return I18N[currentLang]?.[key] || I18N.en[key] || key;
-}
-
-function escapeHTML(value) {
-  return String(value ?? "").replace(/[&<>"']/g, (c) => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#39;"
-  })[c]);
-}
-
-function notify(message) {
-  const el = $("toast");
-  if (!el) return;
-
-  el.textContent = message;
-  el.classList.add("show");
-
-  clearTimeout(notify.timer);
-
-  notify.timer = setTimeout(() => {
-    el.classList.remove("show");
-  }, 3500);
-}
-
-function formError(message) {
-  const el = $("formError");
-  if (el) el.textContent = message;
-  console.error("[BUY OR WAIT?]", message);
-}
-
-function setBusy(value) {
-  busy = value;
-
-  const button = document.querySelector(
-    '#uploadForm button[type="submit"]'
+  return (
+    I18N[currentLang]?.[key] ||
+    I18N.ko[key] ||
+    key
   );
-
-  if (button) {
-    button.disabled = busy;
-    button.textContent = busy ? t("saving") : t("save");
-  }
 }
 
-function applyLanguage(lang) {
-  currentLang = I18N[lang] ? lang : "ko";
+function getSavedLanguage() {
+  try {
+    const saved = localStorage.getItem(LANGUAGE_KEY);
 
-  document.documentElement.lang =
-    currentLang === "zh" ? "zh-CN" : currentLang;
-
-  document.querySelectorAll("[data-i18n]").forEach((el) => {
-    el.textContent = t(el.dataset.i18n);
-  });
-
-  document.querySelectorAll("[data-i18n-html]").forEach((el) => {
-    el.innerHTML = t(el.dataset.i18nHtml);
-  });
-
-  document.querySelectorAll(".language-switch button").forEach((el) => {
-    const active = el.dataset.lang === currentLang;
-    el.classList.toggle("selected", active);
-    el.setAttribute("aria-pressed", String(active));
-  });
-
-  if ($("itemName")) {
-    $("itemName").placeholder = t("namePlaceholder");
+    if (["ko", "zh", "en"].includes(saved)) {
+      return saved;
+    }
+  } catch (error) {
+    console.warn("Language storage unavailable:", error);
   }
 
-  if ($("itemNote")) {
-    $("itemNote").placeholder = t("notePlaceholder");
+  return "ko";
+}
+
+currentLang = getSavedLanguage();
+
+function applyLanguage(language = currentLang) {
+  if (!["ko", "zh", "en"].includes(language)) {
+    language = "ko";
   }
+
+  currentLang = language;
 
   try {
     localStorage.setItem(LANGUAGE_KEY, currentLang);
   } catch (error) {
-    console.warn(error);
+    console.warn("Could not save language:", error);
   }
 
-  setBusy(busy);
+  document.documentElement.lang =
+    currentLang === "zh" ? "zh-CN" : currentLang;
 
-  render();
+  document.querySelectorAll("[data-i18n]").forEach((element) => {
+    const key = element.dataset.i18n;
+
+    if (key && I18N[currentLang]?.[key] !== undefined) {
+      element.textContent = t(key);
+    }
+  });
+
+  document.querySelectorAll("[data-i18n-html]").forEach((element) => {
+    const key = element.dataset.i18nHtml;
+
+    if (key && I18N[currentLang]?.[key] !== undefined) {
+      element.innerHTML = t(key);
+    }
+  });
+
+  document
+    .querySelectorAll("[data-i18n-placeholder]")
+    .forEach((element) => {
+      const key = element.dataset.i18nPlaceholder;
+
+      if (key) {
+        element.placeholder = t(key);
+      }
+    });
+
+  document
+    .querySelectorAll("[data-lang]")
+    .forEach((button) => {
+      const active = button.dataset.lang === currentLang;
+
+      button.classList.toggle("active", active);
+      button.setAttribute(
+        "aria-pressed",
+        String(active)
+      );
+    });
+
+  if (typeof render === "function") {
+    render();
+  }
+
+  if (typeof renderWaitModal === "function") {
+    const modal = $("waitModal");
+
+    if (
+      modal &&
+      !modal.hidden &&
+      modal.classList.contains("open")
+    ) {
+      renderWaitModal();
+    }
+  }
 }
 
-function categoryName(category) {
-  const key = CATEGORY_KEYS[category];
-  return key ? t(key) : (category || t("catOther"));
+function escapeHTML(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
-function formatPrice(value, currency = "KRW") {
-  if (value === null || value === undefined || value === "") {
+function safeNumber(value, fallback = 0) {
+  const number = Number(value);
+
+  return Number.isFinite(number)
+    ? number
+    : fallback;
+}
+
+function normalizeStatus(status) {
+  const value = String(status || "")
+    .trim()
+    .toLowerCase();
+
+  if (
+    value === "bought" ||
+    value === "purchased" ||
+    value === "already_bought"
+  ) {
+    return "bought";
+  }
+
+  if (
+    value === "thinking" ||
+    value === "considering" ||
+    value === "rethink"
+  ) {
+    return "thinking";
+  }
+
+  return "waiting";
+}
+
+function normalizeItem(row) {
+  const status = normalizeStatus(row.status);
+
+  return {
+    id: row.id,
+    user_id: row.user_id || null,
+
+    name:
+      row.item_name ||
+      row.name ||
+      "",
+
+    category:
+      row.category ||
+      "Other cute things",
+
+    price: safeNumber(row.price),
+
+    currency:
+      row.currency ||
+      "KRW",
+
+    note:
+      row.note ||
+      "",
+
+    photo_path:
+      row.photo_path ||
+      "",
+
+    photo_url:
+      row.photo_url ||
+      row.image_url ||
+      "",
+
+    status,
+
+    bought: status === "bought",
+
+    created_at:
+      row.created_at ||
+      new Date().toISOString()
+  };
+}
+
+function formatPrice(item) {
+  const price = safeNumber(item.price);
+
+  if (price <= 0) {
     return t("noPrice");
   }
 
-  const number = Number(value);
-  if (!Number.isFinite(number)) return t("noPrice");
+  const currency = item.currency || "KRW";
 
-  return currency === "KRW"
-    ? `₩ ${number.toLocaleString("en-US")}`
-    : `${number.toLocaleString()} ${currency}`;
+  if (currency === "KRW") {
+    return "₩ " + Math.round(price).toLocaleString();
+  }
+
+  if (currency === "USD") {
+    return "$ " + price.toLocaleString();
+  }
+
+  if (currency === "CNY") {
+    return "¥ " + price.toLocaleString();
+  }
+
+  return (
+    price.toLocaleString() +
+    " " +
+    currency
+  );
 }
 
-/* ==========================================
-   LOCAL BACKUP
-========================================== */
+function getCategoryLabel(category) {
+  const key = CATEGORY_KEYS[category];
 
-function getLocalBackup() {
-  try {
-    const data = JSON.parse(
-      localStorage.getItem(STORAGE_KEY) || "[]"
-    );
-    return Array.isArray(data) ? data : [];
-  } catch {
-    return [];
-  }
+  return key
+    ? t(key)
+    : category || t("catOther");
 }
 
 function saveLocalBackup() {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(finds));
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify(finds)
+    );
   } catch (error) {
-    console.warn(error);
+    console.warn(
+      "Could not save local backup:",
+      error
+    );
+  }
+}
+
+function loadLocalBackup() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+
+    if (!raw) {
+      return [];
+    }
+
+    const parsed = JSON.parse(raw);
+
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+
+    return parsed.map(normalizeItem);
+  } catch (error) {
+    console.warn(
+      "Could not load local backup:",
+      error
+    );
+
+    return [];
   }
 }
 
 /* ==========================================
-   PHOTO URL
+   IMAGE URL HELPERS
 ========================================== */
 
-function getPhotoURL(path) {
-  if (!path) return "";
+function getPhotoURL(item) {
+  if (!item) {
+    return "";
+  }
 
-  if (/^(https?:|data:)/.test(path)) return path;
+  const directURL =
+    item.photo_url ||
+    item.image_url ||
+    "";
 
-  if (!supabaseClient) return "";
+  if (directURL) {
+    return directURL;
+  }
 
-  return supabaseClient.storage
-    .from(BUCKET)
-    .getPublicUrl(path).data.publicUrl;
+  const path = item.photo_path || "";
+
+  if (!path) {
+    return "";
+  }
+
+  if (
+    path.startsWith("http://") ||
+    path.startsWith("https://") ||
+    path.startsWith("data:") ||
+    path.startsWith("blob:")
+  ) {
+    return path;
+  }
+
+  if (!supabaseClient) {
+    return "";
+  }
+
+  try {
+    const result = supabaseClient.storage
+      .from(BUCKET)
+      .getPublicUrl(path);
+
+    return result?.data?.publicUrl || "";
+  } catch (error) {
+    console.warn(
+      "Could not create photo URL:",
+      error
+    );
+
+    return "";
+  }
 }
 
-function normalizeItem(row) {
+function createPhotoHTML(item, className = "") {
+  const photoURL = getPhotoURL(item);
+
+  if (!photoURL) {
+    return `
+      <div class="${escapeHTML(className)} empty-photo">
+        <span aria-hidden="true">♡</span>
+      </div>
+    `;
+  }
+
+  return `
+    <img
+      class="${escapeHTML(className)}"
+      src="${escapeHTML(photoURL)}"
+      alt="${escapeHTML(item.name || "")}"
+      loading="lazy"
+      onerror="this.style.display='none';"
+    >
+  `;
+}
+
+/* ==========================================
+   NOTIFICATIONS
+========================================== */
+
+let notificationTimer = null;
+let lastNotification = "";
+let lastNotificationTime = 0;
+
+function notify(message, duration = 2600) {
+  if (!message) {
+    return;
+  }
+
+  const now = Date.now();
+
+  if (
+    message === lastNotification &&
+    now - lastNotificationTime < 2000
+  ) {
+    return;
+  }
+
+  lastNotification = message;
+  lastNotificationTime = now;
+
+  let toastElement =
+    $("toast") ||
+    document.querySelector(".toast");
+
+  if (!toastElement) {
+    toastElement = document.createElement("div");
+    toastElement.id = "toast";
+    toastElement.className = "toast";
+
+    document.body.appendChild(toastElement);
+  }
+
+  toastElement.textContent = message;
+
+  toastElement.classList.add("show");
+  toastElement.classList.add("visible");
+
+  toastElement.hidden = false;
+
+  clearTimeout(notificationTimer);
+
+  notificationTimer = setTimeout(() => {
+    toastElement.classList.remove("show");
+    toastElement.classList.remove("visible");
+
+    setTimeout(() => {
+      if (
+        !toastElement.classList.contains("show") &&
+        !toastElement.classList.contains("visible")
+      ) {
+        toastElement.hidden = true;
+      }
+    }, 250);
+  }, duration);
+}
+
+function setBusy(value) {
+  busy = Boolean(value);
+
+  document
+    .querySelectorAll("[data-busy-button]")
+    .forEach((button) => {
+      button.disabled = busy;
+    });
+}
+
+/* ==========================================
+   MODAL HELPERS
+========================================== */
+
+function showOverlay() {
+  const overlay = $("overlay");
+
+  if (overlay) {
+    overlay.hidden = false;
+    overlay.classList.add("open");
+  }
+
+  document.body.classList.add("modal-open");
+}
+
+function hideOverlayIfUnused() {
+  const uploadDialog =
+    $("uploadDialog") ||
+    $("uploadModal");
+
+  const wishlistDrawer =
+    $("wishlistDrawer");
+
+  const waitModal =
+    $("waitModal");
+
+  const uploadOpen =
+    uploadDialog &&
+    !uploadDialog.hidden &&
+    uploadDialog.classList.contains("open");
+
+  const drawerOpen =
+    wishlistDrawer &&
+    !wishlistDrawer.hidden &&
+    wishlistDrawer.classList.contains("open");
+
+  const waitOpen =
+    waitModal &&
+    !waitModal.hidden &&
+    waitModal.classList.contains("open");
+
+  if (!uploadOpen && !drawerOpen && !waitOpen) {
+    const overlay = $("overlay");
+
+    if (overlay) {
+      overlay.classList.remove("open");
+      overlay.hidden = true;
+    }
+
+    document.body.classList.remove("modal-open");
+  }
+}
+
+/* ==========================================
+   PART 3 / 7
+   SUPABASE CONNECTION AND CLOUD DATA
+========================================== */
+
+let cloudConnectionPromise = null;
+
+
+/* ==========================================
+   SUPABASE CONFIGURATION
+========================================== */
+
+function getSupabaseConfiguration() {
+  const config =
+    window.SUPABASE_CONFIG ||
+    window.supabaseConfig ||
+    {};
+
+  const url =
+    (typeof SUPABASE_URL !== "undefined"
+      ? SUPABASE_URL
+      : null) ||
+    config.url ||
+    config.supabaseUrl ||
+    window.SUPABASE_URL ||
+    "";
+
+  const key =
+    (typeof SUPABASE_PUBLISHABLE_KEY !== "undefined"
+      ? SUPABASE_PUBLISHABLE_KEY
+      : null) ||
+    (typeof SUPABASE_ANON_KEY !== "undefined"
+      ? SUPABASE_ANON_KEY
+      : null) ||
+    config.publishableKey ||
+    config.anonKey ||
+    config.key ||
+    window.SUPABASE_PUBLISHABLE_KEY ||
+    window.SUPABASE_ANON_KEY ||
+    "";
+
   return {
-    id: row.id,
-    name: row.item_name || "",
-    category: row.category || "Other cute things",
-    price: row.price ?? "",
-    currency: row.currency || "KRW",
-    note: row.note || "",
-    photoPath: row.photo_path || "",
-    photo: getPhotoURL(row.photo_path),
-    bought: row.status === "bought",
-    createdAt: row.created_at || ""
+    url: String(url)
+      .trim()
+      .replace(/\/rest\/v1\/?$/, "")
+      .replace(/\/$/, ""),
+
+    key: String(key).trim()
   };
 }
 
 /* ==========================================
-   RENDER WISHLIST
-========================================== */
-
-function render() {
-  const grid = $("findsGrid");
-  const drawer = $("drawerItems");
-
-  if (!grid || !drawer) return;
-
-  const waiting = finds.filter((x) => !x.bought).length;
-  const bought = finds.length - waiting;
-
-  if ($("wishlistCount")) {
-    $("wishlistCount").textContent = waiting;
-  }
-
-  if ($("drawerCount")) {
-    $("drawerCount").textContent = waiting;
-  }
-
-  if ($("waitingTotal")) {
-    $("waitingTotal").textContent = waiting;
-  }
-
-  if ($("boughtTotal")) {
-    $("boughtTotal").textContent = bought;
-  }
-
-  const visible = finds.filter((x) => {
-    if (filter === "all") return true;
-    if (filter === "waiting") return !x.bought;
-    return x.bought;
-  });
-
-  if (visible.length) {
-    grid.innerHTML = visible.map((item) => `
-      <article class="find-card">
-        <div class="find-image">
-          ${item.photo
-            ? `<img src="${escapeHTML(item.photo)}" alt="${escapeHTML(item.name)}">`
-            : `<span class="find-placeholder">🎀</span>`
-          }
-        </div>
-        <div class="find-info">
-          <h3>${escapeHTML(item.name)}</h3>
-          <div class="find-meta">
-            <span>${escapeHTML(categoryName(item.category))}</span>
-            <span>${escapeHTML(formatPrice(item.price, item.currency))}</span>
-          </div>
-          <span class="status-pill ${item.bought ? "bought" : ""}">
-            ${item.bought ? t("statusBought") : t("statusWaiting")}
-          </span>
-          <div class="find-actions">
-            <button
-              type="button"
-              class="mini-button"
-              data-action="toggle"
-              data-id="${escapeHTML(item.id)}"
-            >
-              ${item.bought ? t("markWaiting") : t("markBought")}
-            </button>
-            <button
-              type="button"
-              class="mini-button"
-              data-action="remove"
-              data-id="${escapeHTML(item.id)}"
-            >
-              ${t("remove")}
-            </button>
-          </div>
-        </div>
-      </article>
-    `).join("");
-  } else {
-    grid.innerHTML = `
-      <div class="empty-finds">
-        <div class="empty-icon">♡</div>
-        <h3>
-          ${filter === "all" ? t("emptyTitle") : t("emptyFiltered")}
-        </h3>
-        <p>${t("emptyDesc")}</p>
-        <button
-          type="button"
-          class="btn btn-yellow"
-          id="emptyUpload"
-        >
-          ${t("emptyButton")}
-        </button>
-      </div>
-    `;
-  }
-
-  if (finds.length) {
-    drawer.innerHTML = [...finds].reverse().map((item) => `
-      <div class="drawer-item">
-        ${item.photo
-          ? `<img src="${escapeHTML(item.photo)}" alt="${escapeHTML(item.name)}">`
-          : `<div class="drawer-placeholder">🎀</div>`
-        }
-        <div>
-          <h3>${escapeHTML(item.name)}</h3>
-          <small>
-            ${escapeHTML(categoryName(item.category))}
-            · ${escapeHTML(formatPrice(item.price, item.currency))}
-          </small>
-          <br>
-          <small>
-            ${item.bought ? t("statusBought") : t("statusWaiting")}
-          </small>
-          <div class="drawer-item-actions">
-            <button
-              type="button"
-              data-action="toggle"
-              data-id="${escapeHTML(item.id)}"
-            >
-              ${item.bought ? t("markWaiting") : t("markBought")}
-            </button>
-            <button
-              type="button"
-              data-action="remove"
-              data-id="${escapeHTML(item.id)}"
-            >
-              ${t("remove")}
-            </button>
-          </div>
-        </div>
-      </div>
-    `).join("");
-  } else {
-    drawer.innerHTML = `
-      <div class="drawer-empty">
-        <div class="empty-icon">♡</div>
-        <p>${t("drawerEmpty")}</p>
-      </div>
-    `;
-  }
-}
-
-/* ==========================================
-   LOAD SUPABASE LIBRARY
-========================================== */
-
-function loadSupabaseLibrary() {
-  return new Promise((resolve, reject) => {
-    if (window.supabase?.createClient) {
-      resolve();
-      return;
-    }
-
-    const script = document.createElement("script");
-
-    script.src =
-      "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js";
-
-    script.onload = () => {
-      if (window.supabase?.createClient) {
-        resolve();
-      } else {
-        reject(
-          new Error("Supabase library unavailable")
-        );
-      }
-    };
-
-    script.onerror = () => {
-      reject(
-        new Error("Supabase library could not be loaded")
-      );
-    };
-
-    document.head.appendChild(script);
-  });
-}
-
-/* ==========================================
-   SUPABASE CONNECTION
+   INITIALIZE SUPABASE
 ========================================== */
 
 async function initializeSupabase() {
-  cloudReady = false;
+  if (cloudReady && supabaseClient && currentUser) {
+    return true;
+  }
+
+  if (cloudConnectionPromise) {
+    return cloudConnectionPromise;
+  }
+
+  cloudConnectionPromise = (async () => {
+    try {
+      if (
+        !window.supabase ||
+        typeof window.supabase.createClient !== "function"
+      ) {
+        throw new Error(
+          "Supabase JavaScript library is not loaded."
+        );
+      }
+
+      const configuration = getSupabaseConfiguration();
+
+      if (!configuration.url || !configuration.key) {
+        throw new Error(
+          "Supabase URL or publishable key is missing."
+        );
+      }
+
+      if (!supabaseClient) {
+        supabaseClient = window.supabase.createClient(
+          configuration.url,
+          configuration.key,
+          {
+            auth: {
+              persistSession: true,
+              autoRefreshToken: true,
+              detectSessionInUrl: false
+            }
+          }
+        );
+      }
+
+      const sessionResult =
+        await supabaseClient.auth.getSession();
+
+      if (sessionResult.error) {
+        throw sessionResult.error;
+      }
+
+      let session = sessionResult.data.session;
+
+      if (!session) {
+        const loginResult =
+          await supabaseClient.auth.signInAnonymously();
+
+        if (loginResult.error) {
+          throw loginResult.error;
+        }
+
+        session = loginResult.data.session;
+      }
+
+      if (!session?.user) {
+        throw new Error(
+          "Anonymous authentication failed."
+        );
+      }
+
+      currentUser = session.user;
+
+      await loadCloudFinds();
+
+      cloudReady = true;
+
+      console.log(
+        "Supabase connected successfully.",
+        currentUser.id
+      );
+
+      // 不弹出“클라우드 연결 완료”提示，
+      // 避免页面不断显示连接成功消息。
+
+      return true;
+    } catch (error) {
+      console.error(
+        "Supabase connection error:",
+        error
+      );
+
+      cloudReady = false;
+
+      finds = loadLocalBackup();
+
+      if (typeof render === "function") {
+        render();
+      }
+
+      return false;
+    }
+  })();
 
   try {
-    await loadSupabaseLibrary();
-
-    supabaseClient = window.supabase.createClient(
-      SUPABASE_URL,
-      SUPABASE_PUBLISHABLE_KEY,
-      {
-        auth: {
-          persistSession: true,
-          autoRefreshToken: true,
-          detectSessionInUrl: false
-        }
-      }
-    );
-
-    const result = await supabaseClient.auth.getSession();
-
-    if (result.error) {
-      throw result.error;
-    }
-
-    let session = result.data.session;
-
-    if (!session) {
-      const login =
-        await supabaseClient.auth.signInAnonymously();
-
-      if (login.error) {
-        throw login.error;
-      }
-
-      session = login.data.session;
-    }
-
-    if (!session?.user) {
-      throw new Error("Anonymous login failed");
-    }
-
-    currentUser = session.user;
-
-    await loadCloudFinds();
-
-    cloudReady = true;
-
-    notify(t("connected"));
-
-    console.log(
-      "[BUY OR WAIT?] Connected:",
-      currentUser.id
-    );
-
-  } catch (error) {
-    console.error(
-      "Supabase connection error:",
-      error
-    );
-
-    cloudReady = false;
-
-    finds = getLocalBackup();
-
-    render();
-
-    notify(
-      `${t("connectionError")}: ${error.message}`
-    );
+    return await cloudConnectionPromise;
+  } finally {
+    cloudConnectionPromise = null;
   }
 }
+
+/* ==========================================
+   ENSURE CLOUD CONNECTION
+========================================== */
 
 async function ensureCloudConnection() {
   if (
     cloudReady &&
-    currentUser &&
-    supabaseClient
+    supabaseClient &&
+    currentUser
   ) {
     return true;
   }
 
-  await initializeSupabase();
-
-  return Boolean(
-    cloudReady &&
-    currentUser &&
-    supabaseClient
-  );
+  return await initializeSupabase();
 }
 
 /* ==========================================
@@ -739,7 +951,9 @@ async function ensureCloudConnection() {
 
 async function loadCloudFinds() {
   if (!supabaseClient || !currentUser) {
-    throw new Error("Not signed in");
+    throw new Error(
+      "Supabase client or user is unavailable."
+    );
   }
 
   const { data, error } = await supabaseClient
@@ -751,6 +965,11 @@ async function loadCloudFinds() {
     });
 
   if (error) {
+    console.error(
+      "Could not load cloud items:",
+      error
+    );
+
     throw error;
   }
 
@@ -758,148 +977,1731 @@ async function loadCloudFinds() {
 
   saveLocalBackup();
 
-  render();
+  if (typeof render === "function") {
+    render();
+  }
+
+  const waitModal = $("waitModal");
+
+  if (
+    waitModal &&
+    !waitModal.hidden &&
+    waitModal.classList.contains("open") &&
+    typeof renderWaitModal === "function"
+  ) {
+    renderWaitModal();
+  }
+
+  return finds;
 }
 
 /* ==========================================
-   PHOTO UPLOAD
+   REFRESH CLOUD FINDS
 ========================================== */
 
-function shrinkImage(file) {
-  return new Promise((resolve, reject) => {
-    const image = new Image();
+async function refreshCloudFinds() {
+  const connected = await ensureCloudConnection();
 
-    const url = URL.createObjectURL(file);
-
-    image.onload = () => {
-      try {
-        const scale = Math.min(
-          1,
-          850 / Math.max(
-            image.width,
-            image.height
-          )
-        );
-
-        const canvas =
-          document.createElement("canvas");
-
-        canvas.width = Math.max(
-          1,
-          Math.round(image.width * scale)
-        );
-
-        canvas.height = Math.max(
-          1,
-          Math.round(image.height * scale)
-        );
-
-        const context = canvas.getContext("2d");
-
-        if (!context) {
-          throw new Error("Canvas unavailable");
-        }
-
-        context.drawImage(
-          image,
-          0,
-          0,
-          canvas.width,
-          canvas.height
-        );
-
-        URL.revokeObjectURL(url);
-
-        canvas.toBlob(
-          (blob) => {
-            if (blob) {
-              resolve(blob);
-            } else {
-              reject(
-                new Error("Image conversion failed")
-              );
-            }
-          },
-          "image/jpeg",
-          0.75
-        );
-
-      } catch (error) {
-        URL.revokeObjectURL(url);
-        reject(error);
-      }
-    };
-
-    image.onerror = () => {
-      URL.revokeObjectURL(url);
-
-      reject(
-        new Error("Cannot read image")
-      );
-    };
-
-    image.src = url;
-  });
-}
-
-async function uploadPhoto(blob) {
-  if (
-    !supabaseClient ||
-    !currentUser?.id
-  ) {
-    throw new Error("Not signed in");
+  if (!connected) {
+    return false;
   }
 
-  const {
-    data: { user },
-    error: authError
-  } = await supabaseClient.auth.getUser();
+  try {
+    await loadCloudFinds();
 
-  if (authError || !user) {
+    return true;
+  } catch (error) {
+    console.error(
+      "Cloud refresh failed:",
+      error
+    );
+
+    return false;
+  }
+}
+
+/* ==========================================
+   UPLOAD PHOTO
+========================================== */
+
+async function uploadPhoto(file) {
+  if (!file) {
+    return "";
+  }
+
+  if (!await ensureCloudConnection()) {
     throw new Error(
-      `Photo upload authentication: ${
-        authError?.message || "Session unavailable"
-      }`
+      "Cloud connection is unavailable."
     );
   }
 
-  currentUser = user;
+  const originalName = String(file.name || "");
+
+  const extension =
+    originalName.split(".").pop()?.toLowerCase() ||
+    "jpg";
+
+  const allowedExtensions = [
+    "jpg",
+    "jpeg",
+    "png",
+    "webp"
+  ];
+
+  const safeExtension =
+    allowedExtensions.includes(extension)
+      ? extension
+      : "jpg";
+
+  const randomId =
+    typeof crypto !== "undefined" &&
+    typeof crypto.randomUUID === "function"
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random()
+          .toString(36)
+          .slice(2)}`;
 
   const path =
-    `${user.id}/${crypto.randomUUID()}.jpg`;
+    `${currentUser.id}/${randomId}.${safeExtension}`;
 
-  const { error } = await supabaseClient.storage
+  const mimeTypes = {
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+    png: "image/png",
+    webp: "image/webp"
+  };
+
+  const contentType =
+    file.type ||
+    mimeTypes[safeExtension] ||
+    "image/jpeg";
+
+  const { data, error } = await supabaseClient.storage
     .from(BUCKET)
-    .upload(path, blob, {
-      contentType: "image/jpeg",
+    .upload(path, file, {
+      contentType,
       upsert: false
     });
 
   if (error) {
+    console.error(
+      "Photo upload failed:",
+      error
+    );
+
+    throw error;
+  }
+
+  return data?.path || path;
+}
+
+/* ==========================================
+   SAVE NEW ITEM
+========================================== */
+
+async function insertCloudItem(itemData) {
+  if (!await ensureCloudConnection()) {
     throw new Error(
-      `Photo upload: ${error.message}`
+      "Cloud connection is unavailable."
     );
   }
 
-  return path;
+  const payload = {
+    user_id: currentUser.id,
+
+    item_name:
+      String(itemData.name || itemData.item_name || "")
+        .trim(),
+
+    category:
+      itemData.category || "Other cute things",
+
+    price: safeNumber(itemData.price),
+
+    currency:
+      itemData.currency || "KRW",
+
+    note:
+      itemData.note || "",
+
+    photo_path:
+      itemData.photo_path || "",
+
+    status: "waiting"
+  };
+
+  if (!payload.item_name) {
+    throw new Error(
+      "Item name is required."
+    );
+  }
+
+  const { data, error } = await supabaseClient
+    .from(TABLE)
+    .insert(payload)
+    .select()
+    .single();
+
+  if (error) {
+    console.error(
+      "Could not save item:",
+      error
+    );
+
+    throw error;
+  }
+
+  await loadCloudFinds();
+
+  return normalizeItem(data);
 }
+
+/* ==========================================
+   UPDATE ITEM STATUS
+========================================== */
+
+async function updateCloudItemStatus(itemId, status) {
+  const allowedStatuses = [
+    "waiting",
+    "thinking",
+    "bought"
+  ];
+
+  if (!allowedStatuses.includes(status)) {
+    throw new Error(
+      `Invalid item status: ${status}`
+    );
+  }
+
+  if (!await ensureCloudConnection()) {
+    throw new Error(
+      "Cloud connection is unavailable."
+    );
+  }
+
+  const { data, error } = await supabaseClient
+    .from(TABLE)
+    .update({
+      status
+    })
+    .eq("id", itemId)
+    .eq("user_id", currentUser.id)
+    .select()
+    .single();
+
+  if (error) {
+    console.error(
+      "Item status update failed:",
+      error
+    );
+
+    throw error;
+  }
+
+  await loadCloudFinds();
+
+  return normalizeItem(data);
+}
+
+/* ==========================================
+   DELETE CLOUD ITEM
+========================================== */
+
+async function deleteCloudItem(itemId) {
+  if (!await ensureCloudConnection()) {
+    throw new Error(
+      "Cloud connection is unavailable."
+    );
+  }
+
+  const item = finds.find(
+    (entry) => String(entry.id) === String(itemId)
+  );
+
+  const { error } = await supabaseClient
+    .from(TABLE)
+    .delete()
+    .eq("id", itemId)
+    .eq("user_id", currentUser.id);
+
+  if (error) {
+    console.error(
+      "Could not delete item:",
+      error
+    );
+
+    throw error;
+  }
+
+  if (item?.photo_path) {
+    const { error: storageError } =
+      await supabaseClient.storage
+        .from(BUCKET)
+        .remove([item.photo_path]);
+
+    if (storageError) {
+      console.warn(
+        "Item deleted, but photo cleanup failed:",
+        storageError
+      );
+    }
+  }
+
+  await loadCloudFinds();
+
+  return true;
+}
+
+/* ==========================================
+   ITEM STATUS HELPERS
+========================================== */
+
+function getItemsByStatus(status) {
+  return finds.filter(
+    (item) => normalizeStatus(item.status) === status
+  );
+}
+
+function getStatusCounts() {
+  return {
+    waiting: getItemsByStatus("waiting").length,
+
+    thinking: getItemsByStatus("thinking").length,
+
+    bought: getItemsByStatus("bought").length,
+
+    total: finds.length
+  };
+}
+
+/* ==========================================
+   PART 4 / 7
+   HOME PRODUCT LIST AND FILTERS
+========================================== */
+
+/* ==========================================
+   PRODUCT CARD TEXT
+========================================== */
+
+function getProductText(key) {
+  const labels = {
+    ko: {
+      waiting: "기다리는 중",
+      thinking: "다시 생각 중",
+      bought: "이미 샀어요",
+      rethink: "다시 생각하기",
+      waitAgain: "다시 기다리기",
+      boughtAction: "이미 샀어요",
+      delete: "삭제"
+    },
+
+    zh: {
+      waiting: "等待中",
+      thinking: "重新考虑中",
+      bought: "已经买了",
+      rethink: "重新考虑",
+      waitAgain: "重新等待",
+      boughtAction: "已经买了",
+      delete: "删除"
+    },
+
+    en: {
+      waiting: "Waiting",
+      thinking: "Thinking again",
+      bought: "Already bought",
+      rethink: "Think again",
+      waitAgain: "Wait again",
+      boughtAction: "Already bought",
+      delete: "Delete"
+    }
+  };
+
+  return labels[currentLang]?.[key] ||
+    labels.ko[key] ||
+    key;
+}
+
+/* ==========================================
+   PRODUCT STATUS
+========================================== */
+
+function getItemStatus(item) {
+  return normalizeStatus(item.status);
+}
+
+function getItemStatusLabel(item) {
+  return getProductText(getItemStatus(item));
+}
+
+/* ==========================================
+   PRODUCT FILTER
+========================================== */
+
+function getFilteredFinds() {
+  if (filter === "all") {
+    return finds;
+  }
+
+  if (filter === "waiting") {
+    return finds.filter((item) => {
+      const status = getItemStatus(item);
+
+      return (
+        status === "waiting" ||
+        status === "thinking"
+      );
+    });
+  }
+
+  if (filter === "bought") {
+    return finds.filter(
+      (item) => getItemStatus(item) === "bought"
+    );
+  }
+
+  if (filter === "thinking") {
+    return finds.filter(
+      (item) => getItemStatus(item) === "thinking"
+    );
+  }
+
+  return finds;
+}
+
+/* ==========================================
+   PRODUCT PHOTO
+========================================== */
+
+function renderProductPhoto(item) {
+  const photoURL = getPhotoURL(item);
+
+  if (!photoURL) {
+    return `
+      <div class="find-photo-placeholder">
+        <span aria-hidden="true">♡</span>
+      </div>
+    `;
+  }
+
+  return `
+    <img
+      src="${escapeHTML(photoURL)}"
+      alt="${escapeHTML(item.name)}"
+      class="find-photo-image"
+      loading="lazy"
+      onerror="
+        this.style.display='none';
+        this.parentElement.classList.add('photo-error');
+      "
+    >
+  `;
+}
+
+/* ==========================================
+   HOME PRODUCT CARD
+========================================== */
+
+function renderFindCard(item) {
+  const status = getItemStatus(item);
+
+  const statusClass =
+    status === "bought"
+      ? "is-bought"
+      : status === "thinking"
+        ? "is-thinking"
+        : "is-waiting";
+
+  return `
+    <article
+      class="find-card ${statusClass}"
+      data-item-id="${escapeHTML(item.id)}"
+    >
+      <div class="find-photo">
+        ${renderProductPhoto(item)}
+      </div>
+
+      <div class="find-card-content">
+        <div class="find-card-top">
+          <span class="find-category">
+            ${escapeHTML(
+              getCategoryLabel(item.category)
+            )}
+          </span>
+
+          <span class="find-status">
+            ${escapeHTML(
+              getItemStatusLabel(item)
+            )}
+          </span>
+        </div>
+
+        <h3 class="find-name">
+          ${escapeHTML(item.name)}
+        </h3>
+
+        <p class="find-price">
+          ${escapeHTML(formatPrice(item))}
+        </p>
+
+        ${
+          item.note
+            ? `
+              <p class="find-note">
+                ${escapeHTML(item.note)}
+              </p>
+            `
+            : ""
+        }
+
+        <div class="find-actions">
+          <button
+            type="button"
+            class="find-action-button"
+            data-item-action="open-wait"
+            data-item-id="${escapeHTML(item.id)}"
+          >
+            ${escapeHTML(
+              getProductText("waiting")
+            )}
+          </button>
+
+          <button
+            type="button"
+            class="find-delete-button"
+            data-item-action="delete"
+            data-item-id="${escapeHTML(item.id)}"
+          >
+            ${escapeHTML(
+              getProductText("delete")
+            )}
+          </button>
+        </div>
+      </div>
+    </article>
+  `;
+}
+
+/* ==========================================
+   EMPTY PRODUCT LIST
+========================================== */
+
+function renderEmptyFinds() {
+  const emptyTitle =
+    filter === "all"
+      ? t("emptyTitle")
+      : t("emptyFiltered");
+
+  return `
+    <div class="finds-empty">
+      <div class="finds-empty-icon">
+        ♡
+      </div>
+
+      <h3>${escapeHTML(emptyTitle)}</h3>
+
+      <p>
+        ${escapeHTML(t("emptyDesc"))}
+      </p>
+
+      <button
+        type="button"
+        class="btn btn-primary"
+        data-open-upload
+      >
+        ${escapeHTML(t("emptyButton"))}
+      </button>
+    </div>
+  `;
+}
+
+/* ==========================================
+   RENDER HOME FINDS
+========================================== */
+
+function renderFinds() {
+  const grid =
+    $("findsGrid") ||
+    document.querySelector(".finds-grid") ||
+    document.querySelector("[data-finds-grid]");
+
+  if (!grid) {
+    return;
+  }
+
+  const items = getFilteredFinds();
+
+  if (!items.length) {
+    grid.innerHTML = renderEmptyFinds();
+    return;
+  }
+
+  grid.innerHTML = items
+    .map(renderFindCard)
+    .join("");
+}
+
+/* ==========================================
+   RENDER COUNTS
+========================================== */
+
+function renderCounts() {
+  const counts = getStatusCounts();
+
+  const waitingCount =
+    counts.waiting + counts.thinking;
+
+  const countTargets = {
+    all: counts.total,
+    waiting: waitingCount,
+    thinking: counts.thinking,
+    bought: counts.bought
+  };
+
+  document
+    .querySelectorAll("[data-count]")
+    .forEach((element) => {
+      const type = element.dataset.count;
+
+      if (countTargets[type] !== undefined) {
+        element.textContent =
+          String(countTargets[type]);
+      }
+    });
+
+  const waitingStat =
+    $("waitingCount") ||
+    $("wishlistWaitingCount");
+
+  const boughtStat =
+    $("boughtCount") ||
+    $("wishlistBoughtCount");
+
+  if (waitingStat) {
+    waitingStat.textContent =
+      String(waitingCount);
+  }
+
+  if (boughtStat) {
+    boughtStat.textContent =
+      String(counts.bought);
+  }
+}
+
+/* ==========================================
+   FILTER BUTTONS
+========================================== */
+
+function renderFilterButtons() {
+  document
+    .querySelectorAll("[data-filter]")
+    .forEach((button) => {
+      const selected =
+        button.dataset.filter === filter;
+
+      button.classList.toggle(
+        "active",
+        selected
+      );
+
+      button.setAttribute(
+        "aria-pressed",
+        String(selected)
+      );
+    });
+}
+
+function setFindsFilter(nextFilter) {
+  const allowedFilters = [
+    "all",
+    "waiting",
+    "thinking",
+    "bought"
+  ];
+
+  filter = allowedFilters.includes(nextFilter)
+    ? nextFilter
+    : "all";
+
+  renderFinds();
+  renderFilterButtons();
+}
+
+/* ==========================================
+   MAIN RENDER
+========================================== */
+
+function render() {
+  renderFinds();
+  renderCounts();
+  renderFilterButtons();
+
+  const modal = $("waitModal");
+
+  if (
+    modal &&
+    !modal.hidden &&
+    modal.classList.contains("open") &&
+    typeof renderWaitModal === "function"
+  ) {
+    renderWaitModal();
+  }
+}
+
+/* ==========================================
+   HOME PRODUCT BUTTON ACTIONS
+========================================== */
+
+async function handleHomeItemAction(event) {
+  const button = event.target.closest(
+    "[data-item-action]"
+  );
+
+  if (!button) {
+    return;
+  }
+
+  const action = button.dataset.itemAction;
+  const itemId = button.dataset.itemId;
+
+  if (!itemId) {
+    return;
+  }
+
+  const item = finds.find(
+    (entry) =>
+      String(entry.id) === String(itemId)
+  );
+
+  if (!item) {
+    return;
+  }
+
+  if (action === "open-wait") {
+    if (typeof openWaitModal === "function") {
+      openWaitModal(getItemStatus(item));
+    }
+
+    return;
+  }
+
+  if (action === "delete") {
+    const confirmed = window.confirm(
+      t("confirmRemove")
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    if (busy) {
+      return;
+    }
+
+    setBusy(true);
+
+    try {
+      await deleteCloudItem(itemId);
+
+      notify(t("removed"));
+    } catch (error) {
+      console.error(
+        "Delete action failed:",
+        error
+      );
+
+      notify(
+        `${t("deleteError")}: ${error.message}`
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+}
+
+/* ==========================================
+   PRODUCT EVENT LISTENERS
+========================================== */
+
+function initializeFindsEvents() {
+  const grid =
+    $("findsGrid") ||
+    document.querySelector(".finds-grid") ||
+    document.querySelector("[data-finds-grid]");
+
+  if (grid && !grid.dataset.eventsReady) {
+    grid.dataset.eventsReady = "true";
+
+    grid.addEventListener(
+      "click",
+      handleHomeItemAction
+    );
+  }
+
+  document
+    .querySelectorAll("[data-filter]")
+    .forEach((button) => {
+      if (button.dataset.eventsReady) {
+        return;
+      }
+
+      button.dataset.eventsReady = "true";
+
+      button.addEventListener(
+        "click",
+        () => {
+          setFindsFilter(
+            button.dataset.filter
+          );
+        }
+      );
+    });
+}
+
+/* ==========================================
+   PART 5 / 7
+   WAITING MODAL
+   Three tabs / Photo / Price / Status
+========================================== */
+
+const WAIT_MODAL_I18N = {
+  ko: {
+    title: "잠깐만 기다려볼까?",
+    description:
+      "오늘도 천천히 마음에 담아둔 물건을 살펴봐요.",
+    waiting: "기다리는 중",
+    thinking: "다시 생각 중",
+    bought: "이미 샀어요",
+    waitingTitle: "기다리고 있는 귀여운 것들",
+    thinkingTitle: "다시 생각하고 있는 것들",
+    boughtTitle: "이미 내 것이 된 귀여운 것들",
+    rethink: "다시 생각하기",
+    waitAgain: "다시 기다리기",
+    boughtAction: "이미 샀어요",
+    empty: "아직 물건이 없어요.",
+    close: "닫기",
+    updating: "변경 중..."
+  },
+
+  zh: {
+    title: "要不要再等等？",
+    description:
+      "今天也慢慢看看收藏起来的心动小物吧。",
+    waiting: "等待中",
+    thinking: "重新考虑中",
+    bought: "已经买了",
+    waitingTitle: "正在等待的可爱小物",
+    thinkingTitle: "正在重新考虑的小物",
+    boughtTitle: "已经拥有的可爱小物",
+    rethink: "重新考虑",
+    waitAgain: "重新等待",
+    boughtAction: "已经买了",
+    empty: "这里暂时没有物品。",
+    close: "关闭",
+    updating: "正在修改..."
+  },
+
+  en: {
+    title: "Shall we wait a little?",
+    description:
+      "Take another look at the little things you love.",
+    waiting: "Waiting",
+    thinking: "Thinking again",
+    bought: "Already bought",
+    waitingTitle: "Cute things worth waiting for",
+    thinkingTitle: "Things I'm thinking about",
+    boughtTitle: "Cute things I already own",
+    rethink: "Think again",
+    waitAgain: "Wait again",
+    boughtAction: "Already bought",
+    empty: "Nothing here yet.",
+    close: "Close",
+    updating: "Updating..."
+  }
+};
+
+let waitModalTab = "waiting";
+let waitModalBusy = false;
+
+function waitText(key) {
+  return (
+    WAIT_MODAL_I18N[currentLang]?.[key] ||
+    WAIT_MODAL_I18N.ko[key] ||
+    key
+  );
+}
+
+/* ==========================================
+   CREATE WAIT MODAL
+========================================== */
+
+function createWaitModal() {
+  let modal = $("waitModal");
+
+  if (modal) {
+    return modal;
+  }
+
+  modal = document.createElement("div");
+
+  modal.id = "waitModal";
+  modal.className = "wait-modal";
+  modal.hidden = true;
+  modal.setAttribute("aria-hidden", "true");
+
+  modal.innerHTML = `
+    <div class="wait-modal-backdrop"
+         data-wait-close></div>
+
+    <section
+      class="wait-modal-panel"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="waitModalTitle"
+    >
+      <button
+        type="button"
+        class="wait-modal-close"
+        data-wait-close
+        aria-label="Close"
+      >×</button>
+
+      <header class="wait-modal-header">
+        <h2 id="waitModalTitle"></h2>
+        <p id="waitModalDescription"></p>
+      </header>
+
+      <div
+        class="wait-modal-tabs"
+        id="waitModalTabs"
+      ></div>
+
+      <h3
+        class="wait-modal-section-title"
+        id="waitModalSectionTitle"
+      ></h3>
+
+      <div
+        class="wait-modal-grid"
+        id="waitModalGrid"
+      ></div>
+    </section>
+  `;
+
+  document.body.appendChild(modal);
+
+  modal.addEventListener("click", async (event) => {
+    const closeButton = event.target.closest(
+      "[data-wait-close]"
+    );
+
+    if (closeButton) {
+      closeWaitModal();
+      return;
+    }
+
+    const tabButton = event.target.closest(
+      "[data-wait-tab]"
+    );
+
+    if (tabButton) {
+      waitModalTab = tabButton.dataset.waitTab;
+      renderWaitModal();
+      return;
+    }
+
+    const actionButton = event.target.closest(
+      "[data-wait-action]"
+    );
+
+    if (actionButton) {
+      const itemId = actionButton.dataset.waitId;
+      const nextStatus =
+        actionButton.dataset.waitAction;
+
+      await updateWaitItem(
+        itemId,
+        nextStatus
+      );
+    }
+  });
+
+  return modal;
+}
+
+/* ==========================================
+   OPEN WAIT MODAL
+========================================== */
+
+function openWaitModal(tab = "waiting") {
+  const modal = createWaitModal();
+
+  const allowedTabs = [
+    "waiting",
+    "thinking",
+    "bought"
+  ];
+
+  waitModalTab = allowedTabs.includes(tab)
+    ? tab
+    : "waiting";
+
+  modal.hidden = false;
+  modal.classList.add("open");
+  modal.setAttribute("aria-hidden", "false");
+
+  document.body.classList.add("locked");
+
+  renderWaitModal();
+}
+
+/* ==========================================
+   CLOSE WAIT MODAL
+========================================== */
+
+function closeWaitModal() {
+  const modal = $("waitModal");
+
+  if (!modal) {
+    return;
+  }
+
+  modal.classList.remove("open");
+  modal.hidden = true;
+  modal.setAttribute("aria-hidden", "true");
+
+  document.body.classList.remove("locked");
+
+  hideOverlayIfUnused();
+}
+
+/* ==========================================
+   WAIT MODAL PHOTO
+========================================== */
+
+function renderWaitPhoto(item) {
+  const photoURL = getPhotoURL(item);
+
+  if (!photoURL) {
+    return `
+      <div class="wait-photo-empty">
+        <span aria-hidden="true">♡</span>
+      </div>
+    `;
+  }
+
+  return `
+    <img
+      src="${escapeHTML(photoURL)}"
+      alt="${escapeHTML(item.name)}"
+      loading="lazy"
+      class="wait-product-image"
+      onerror="
+        this.style.display='none';
+        this.parentElement.classList.add('photo-error');
+      "
+    >
+  `;
+}
+
+/* ==========================================
+   WAIT MODAL ACTION BUTTONS
+========================================== */
+
+function renderWaitActions(item) {
+  const status = getItemStatus(item);
+  const id = escapeHTML(item.id);
+
+  if (status === "waiting") {
+    return `
+      <button
+        type="button"
+        class="wait-action wait-action-thinking"
+        data-wait-action="thinking"
+        data-wait-id="${id}"
+      >
+        ${escapeHTML(waitText("rethink"))}
+      </button>
+
+      <button
+        type="button"
+        class="wait-action wait-action-bought"
+        data-wait-action="bought"
+        data-wait-id="${id}"
+      >
+        ${escapeHTML(waitText("boughtAction"))}
+      </button>
+    `;
+  }
+
+  if (status === "thinking") {
+    return `
+      <button
+        type="button"
+        class="wait-action wait-action-waiting"
+        data-wait-action="waiting"
+        data-wait-id="${id}"
+      >
+        ${escapeHTML(waitText("waitAgain"))}
+      </button>
+
+      <button
+        type="button"
+        class="wait-action wait-action-bought"
+        data-wait-action="bought"
+        data-wait-id="${id}"
+      >
+        ${escapeHTML(waitText("boughtAction"))}
+      </button>
+    `;
+  }
+
+  return `
+    <button
+      type="button"
+      class="wait-action wait-action-waiting"
+      data-wait-action="waiting"
+      data-wait-id="${id}"
+    >
+      ${escapeHTML(waitText("waitAgain"))}
+    </button>
+  `;
+}
+
+/* ==========================================
+   WAIT PRODUCT CARD
+========================================== */
+
+function renderWaitProduct(item, index) {
+  const colors = [
+    "#f8dce6",
+    "#dcecf5",
+    "#e9eedb",
+    "#fbe7cd"
+  ];
+
+  const background =
+    colors[index % colors.length];
+
+  return `
+    <article
+      class="wait-product"
+      style="background:${background}"
+    >
+      <div class="wait-product-photo">
+        ${renderWaitPhoto(item)}
+      </div>
+
+      <div class="wait-product-price">
+        ${escapeHTML(formatPrice(item))}
+      </div>
+
+      <div class="wait-product-actions">
+        ${renderWaitActions(item)}
+      </div>
+    </article>
+  `;
+}
+
+/* ==========================================
+   RENDER WAIT MODAL
+========================================== */
+
+function renderWaitModal() {
+  const modal = $("waitModal");
+
+  if (!modal || modal.hidden) {
+    return;
+  }
+
+  const title = $("waitModalTitle");
+  const description = $("waitModalDescription");
+  const tabs = $("waitModalTabs");
+  const section = $("waitModalSectionTitle");
+  const grid = $("waitModalGrid");
+
+  if (
+    !title ||
+    !description ||
+    !tabs ||
+    !section ||
+    !grid
+  ) {
+    return;
+  }
+
+  title.textContent = waitText("title");
+  description.textContent =
+    waitText("description");
+
+  const counts = getStatusCounts();
+
+  const statuses = [
+    "waiting",
+    "thinking",
+    "bought"
+  ];
+
+  tabs.innerHTML = statuses
+    .map((status) => {
+      const active =
+        waitModalTab === status;
+
+      return `
+        <button
+          type="button"
+          class="wait-tab ${active ? "active" : ""}"
+          data-wait-tab="${status}"
+          aria-pressed="${active}"
+        >
+          <span>
+            ${escapeHTML(waitText(status))}
+          </span>
+
+          <strong>
+            ${counts[status]}
+          </strong>
+        </button>
+      `;
+    })
+    .join("");
+
+  const sectionTitles = {
+    waiting: "waitingTitle",
+    thinking: "thinkingTitle",
+    bought: "boughtTitle"
+  };
+
+  section.textContent = waitText(
+    sectionTitles[waitModalTab]
+  );
+
+  const visibleItems =
+    getItemsByStatus(waitModalTab);
+
+  if (!visibleItems.length) {
+    grid.innerHTML = `
+      <p class="wait-modal-empty">
+        ${escapeHTML(waitText("empty"))}
+      </p>
+    `;
+
+    return;
+  }
+
+  grid.innerHTML = visibleItems
+    .map(renderWaitProduct)
+    .join("");
+}
+
+/* ==========================================
+   UPDATE STATUS INSIDE WAIT MODAL
+========================================== */
+
+async function updateWaitItem(itemId, nextStatus) {
+  if (waitModalBusy) {
+    return;
+  }
+
+  const allowedStatuses = [
+    "waiting",
+    "thinking",
+    "bought"
+  ];
+
+  if (!allowedStatuses.includes(nextStatus)) {
+    console.error(
+      "Invalid wait status:",
+      nextStatus
+    );
+
+    return;
+  }
+
+  const item = finds.find(
+    (entry) =>
+      String(entry.id) === String(itemId)
+  );
+
+  if (!item) {
+    return;
+  }
+
+  waitModalBusy = true;
+
+  const modal = $("waitModal");
+
+  if (modal) {
+    modal.classList.add("updating");
+  }
+
+  try {
+    await updateCloudItemStatus(
+      itemId,
+      nextStatus
+    );
+
+    // 状态更新成功后，商品会自动从当前分类
+    // 移动到对应的 waiting / thinking / bought 分类。
+
+    // 保持原来的弹窗打开，不跳转首页。
+    renderWaitModal();
+
+  } catch (error) {
+    console.error(
+      "Wait item update failed:",
+      error
+    );
+
+    notify(
+      `${t("updateError")}: ${error.message}`
+    );
+  } finally {
+    waitModalBusy = false;
+
+    if (modal) {
+      modal.classList.remove("updating");
+    }
+  }
+}
+
+/* ==========================================
+   WAIT MODAL KEYBOARD SUPPORT
+========================================== */
+
+function initializeWaitModalKeyboard() {
+  if (document.body.dataset.waitKeyboardReady) {
+    return;
+  }
+
+  document.body.dataset.waitKeyboardReady = "true";
+
+  document.addEventListener(
+    "keydown",
+    (event) => {
+      if (event.key !== "Escape") {
+        return;
+      }
+
+      const modal = $("waitModal");
+
+      if (
+        modal &&
+        !modal.hidden &&
+        modal.classList.contains("open")
+      ) {
+        closeWaitModal();
+      }
+    }
+  );
+}
+
+/* ==========================================
+   PART 6 / 7
+   UPLOAD MODAL AND PHOTO HANDLING
+========================================== */
+
+/* ==========================================
+   UPLOAD FORM HELPERS
+========================================== */
+
+function getUploadDialog() {
+  return $("uploadDialog");
+}
+
+function getUploadForm() {
+  return $("uploadForm");
+}
+
+function getUploadPhotoInput() {
+  return $("itemPhoto");
+}
+
+function getUploadSubmitButton() {
+  return document.querySelector(
+    '#uploadForm button[type="submit"]'
+  );
+}
+
+/* ==========================================
+   UPLOAD FORM ERROR
+========================================== */
+
+function formError(message = "") {
+  const errorElement = $("formError");
+
+  if (errorElement) {
+    errorElement.textContent = message;
+    errorElement.hidden = !message;
+  }
+
+  if (message) {
+    console.error(
+      "[BUY OR WAIT?] Upload:",
+      message
+    );
+  }
+}
+
+/* ==========================================
+   OPEN UPLOAD MODAL
+========================================== */
+
+function openUpload() {
+  const dialog = getUploadDialog();
+
+  if (!dialog) {
+    console.error(
+      "Upload dialog #uploadDialog was not found."
+    );
+
+    return;
+  }
+
+  formError("");
+
+  if (typeof closeDrawer === "function") {
+    closeDrawer();
+  }
+
+  if (typeof closeWaitModal === "function") {
+    const waitModal = $("waitModal");
+
+    if (waitModal && !waitModal.hidden) {
+      closeWaitModal();
+    }
+  }
+
+  if (typeof dialog.showModal === "function") {
+    if (!dialog.open) {
+      dialog.showModal();
+    }
+  } else {
+    dialog.hidden = false;
+    dialog.classList.add("open");
+  }
+
+  document.body.classList.add("locked");
+}
+
+/* ==========================================
+   CLOSE UPLOAD MODAL
+========================================== */
+
+function closeUpload() {
+  const dialog = getUploadDialog();
+
+  if (!dialog) {
+    return;
+  }
+
+  if (
+    typeof dialog.close === "function" &&
+    dialog.open
+  ) {
+    dialog.close();
+  } else {
+    dialog.classList.remove("open");
+    dialog.hidden = true;
+  }
+
+  document.body.classList.remove("locked");
+
+  hideOverlayIfUnused();
+}
+
+/* ==========================================
+   IMAGE VALIDATION
+========================================== */
+
+function validateUploadImage(file) {
+  if (!file) {
+    return true;
+  }
+
+  const allowedTypes = [
+    "image/jpeg",
+    "image/png",
+    "image/webp"
+  ];
+
+  if (!allowedTypes.includes(file.type)) {
+    throw new Error(t("imageInvalid"));
+  }
+
+  const maximumSize = 5 * 1024 * 1024;
+
+  if (file.size > maximumSize) {
+    throw new Error(t("imageInvalid"));
+  }
+
+  return true;
+}
+
+/* ==========================================
+   IMAGE COMPRESSION
+========================================== */
+
+function shrinkImage(file) {
+  return new Promise((resolve, reject) => {
+    if (!file) {
+      resolve(null);
+      return;
+    }
+
+    let objectURL = "";
+
+    try {
+      validateUploadImage(file);
+
+      objectURL = URL.createObjectURL(file);
+
+      const image = new Image();
+
+      image.onload = () => {
+        try {
+          const maximumDimension = 1200;
+
+          const scale = Math.min(
+            1,
+            maximumDimension /
+              Math.max(image.width, image.height)
+          );
+
+          const width = Math.max(
+            1,
+            Math.round(image.width * scale)
+          );
+
+          const height = Math.max(
+            1,
+            Math.round(image.height * scale)
+          );
+
+          const canvas =
+            document.createElement("canvas");
+
+          canvas.width = width;
+          canvas.height = height;
+
+          const context = canvas.getContext("2d");
+
+          if (!context) {
+            throw new Error(
+              "Image canvas is unavailable."
+            );
+          }
+
+          context.drawImage(
+            image,
+            0,
+            0,
+            width,
+            height
+          );
+
+          canvas.toBlob(
+            (blob) => {
+              URL.revokeObjectURL(objectURL);
+
+              if (!blob) {
+                reject(
+                  new Error(
+                    "Image compression failed."
+                  )
+                );
+
+                return;
+              }
+
+              const compressedFile = new File(
+                [blob],
+                "buy-or-wait-photo.jpg",
+                {
+                  type: "image/jpeg"
+                }
+              );
+
+              resolve(compressedFile);
+            },
+            "image/jpeg",
+            0.85
+          );
+        } catch (error) {
+          URL.revokeObjectURL(objectURL);
+          reject(error);
+        }
+      };
+
+      image.onerror = () => {
+        URL.revokeObjectURL(objectURL);
+
+        reject(
+          new Error(t("imageError"))
+        );
+      };
+
+      image.src = objectURL;
+    } catch (error) {
+      if (objectURL) {
+        URL.revokeObjectURL(objectURL);
+      }
+
+      reject(error);
+    }
+  });
+}
+
+/* ==========================================
+   PHOTO PREVIEW
+========================================== */
 
 function clearPhotoPreview() {
   if (photoPreviewURL) {
     URL.revokeObjectURL(photoPreviewURL);
-
     photoPreviewURL = "";
   }
 
-  if ($("photoPreview")) {
-    $("photoPreview").hidden = true;
+  const preview = $("photoPreview");
+  const prompt = $("photoPrompt");
 
-    $("photoPreview").removeAttribute("src");
+  if (preview) {
+    preview.hidden = true;
+    preview.removeAttribute("src");
   }
 
-  if ($("photoPrompt")) {
-    $("photoPrompt").hidden = false;
+  if (prompt) {
+    prompt.hidden = false;
   }
+}
+
+async function handlePhotoPreview(event) {
+  const input = event.target;
+  const file = input.files?.[0];
+
+  if (!file) {
+    clearPhotoPreview();
+    return;
+  }
+
+  try {
+    validateUploadImage(file);
+
+    const compressedFile =
+      await shrinkImage(file);
+
+    if (!compressedFile) {
+      throw new Error(t("imageError"));
+    }
+
+    clearPhotoPreview();
+
+    photoPreviewURL =
+      URL.createObjectURL(compressedFile);
+
+    const preview = $("photoPreview");
+    const prompt = $("photoPrompt");
+
+    if (preview) {
+      preview.src = photoPreviewURL;
+      preview.hidden = false;
+    }
+
+    if (prompt) {
+      prompt.hidden = true;
+    }
+
+    formError("");
+  } catch (error) {
+    console.error(
+      "Photo preview failed:",
+      error
+    );
+
+    input.value = "";
+
+    clearPhotoPreview();
+
+    formError(
+      error.message || t("imageError")
+    );
+  }
+}
+
+/* ==========================================
+   UPLOAD FORM VALUES
+========================================== */
+
+function getUploadFormValues() {
+  const name =
+    $("itemName")?.value.trim() || "";
+
+  const priceText =
+    $("itemPrice")?.value.trim() || "";
+
+  const category =
+    $("itemCategory")?.value ||
+    "Other cute things";
+
+  const note =
+    $("itemNote")?.value.trim() || "";
+
+  if (!name) {
+    throw new Error(t("needName"));
+  }
+
+  let price = 0;
+
+  if (priceText !== "") {
+    const normalizedPrice = priceText
+      .replace(/,/g, "")
+      .replace(/\s/g, "");
+
+    price = Number(normalizedPrice);
+
+    if (
+      !Number.isFinite(price) ||
+      price < 0
+    ) {
+      throw new Error(
+        currentLang === "ko"
+          ? "올바른 가격을 입력해 주세요."
+          : currentLang === "zh"
+            ? "请输入正确的价格。"
+            : "Please enter a valid price."
+      );
+    }
+  }
+
+  return {
+    name,
+    price,
+    category,
+    note,
+    currency: "KRW"
+  };
+}
+
+/* ==========================================
+   UPLOAD BUTTON LOADING STATE
+========================================== */
+
+function setUploadSavingState(isSaving) {
+  const button = getUploadSubmitButton();
+
+  if (!button) {
+    return;
+  }
+
+  button.disabled = Boolean(isSaving);
+
+  button.textContent = isSaving
+    ? t("saving")
+    : t("save");
+
+  button.setAttribute(
+    "aria-busy",
+    String(Boolean(isSaving))
+  );
 }
 
 /* ==========================================
@@ -909,343 +2711,819 @@ function clearPhotoPreview() {
 async function saveNewFind(event) {
   event.preventDefault();
 
-  if (busy) return;
-
-  const name = $("itemName")?.value.trim();
-
-  if (!name) {
-    formError(t("needName"));
+  if (busy) {
     return;
   }
 
-  setBusy(true);
-  formError("");
-
-  let photoPath = "";
-  let inserted = false;
+  let uploadedPhotoPath = "";
+  let itemSaved = false;
 
   try {
-    if (!await ensureCloudConnection()) {
-      throw new Error("Cloud login failed");
+    const values = getUploadFormValues();
+
+    const connected =
+      await ensureCloudConnection();
+
+    if (!connected) {
+      throw new Error(t("connectionError"));
     }
 
-    const file = $("itemPhoto")?.files?.[0];
+    setBusy(true);
+    setUploadSavingState(true);
+    formError("");
 
-    if (file) {
-      if (
-        ![
-          "image/jpeg",
-          "image/png",
-          "image/webp"
-        ].includes(file.type) ||
-        file.size > 5 * 1024 * 1024
-      ) {
-        throw new Error(t("imageInvalid"));
-      }
+    const photoInput = getUploadPhotoInput();
+    const originalFile = photoInput?.files?.[0];
 
-      const blob = await shrinkImage(file);
+    if (originalFile) {
+      validateUploadImage(originalFile);
 
-      photoPath = await uploadPhoto(blob);
+      const compressedFile =
+        await shrinkImage(originalFile);
+
+      uploadedPhotoPath =
+        await uploadPhoto(compressedFile);
     }
 
-    const priceText =
-      $("itemPrice")?.value.trim() || "";
-
-    const price = priceText === ""
-      ? null
-      : Number(priceText);
-
-    if (
-      price !== null &&
-      (
-        !Number.isFinite(price) ||
-        price < 0
-      )
-    ) {
-      throw new Error("Invalid price");
-    }
-
-    const item = {
-      user_id: currentUser.id,
-      item_name: name,
-      category:
-        $("itemCategory")?.value ||
-        "Other cute things",
-      price,
-      currency: "KRW",
-      note:
-        $("itemNote")?.value.trim() || "",
-      photo_path: photoPath || null,
+    const savedItem = await insertCloudItem({
+      name: values.name,
+      price: values.price,
+      category: values.category,
+      note: values.note,
+      currency: values.currency,
+      photo_path: uploadedPhotoPath,
       status: "waiting"
-    };
+    });
 
-    const { data, error } = await supabaseClient
-      .from(TABLE)
-      .insert(item)
-      .select()
-      .single();
-
-    if (error) {
-      throw new Error(
-        `Database: ${error.message}`
-      );
+    if (!savedItem) {
+      throw new Error(t("saveError"));
     }
 
-    inserted = true;
+    itemSaved = true;
 
-    finds.unshift(normalizeItem(data));
+    const form = getUploadForm();
 
-    saveLocalBackup();
-
-    render();
-
-    $("uploadForm").reset();
+    if (form) {
+      form.reset();
+    }
 
     clearPhotoPreview();
+    formError("");
 
     closeUpload();
 
     notify(t("saved"));
 
-    try {
-      await loadCloudFinds();
-    } catch (error) {
-      console.warn(
-        "Saved, but refresh failed:",
-        error
-      );
-    }
-
-    $("finds")?.scrollIntoView({
-      behavior: "smooth",
-      block: "start"
-    });
+    // 保存成功后不强制跳转首页的商品区域。
+    // 用户可以继续在原来的位置浏览网站。
 
   } catch (error) {
-    console.error("Save failed:", error);
+    console.error(
+      "Save new find failed:",
+      error
+    );
 
     formError(
       `${t("saveError")}: ${error.message}`
     );
 
     if (
-      photoPath &&
-      !inserted &&
+      uploadedPhotoPath &&
+      !itemSaved &&
       supabaseClient
     ) {
       try {
-        await supabaseClient.storage
-          .from(BUCKET)
-          .remove([photoPath]);
+        const { error: cleanupError } =
+          await supabaseClient.storage
+            .from(BUCKET)
+            .remove([uploadedPhotoPath]);
 
+        if (cleanupError) {
+          console.warn(
+            "Photo cleanup failed:",
+            cleanupError
+          );
+        }
       } catch (cleanupError) {
-        console.warn(cleanupError);
+        console.warn(
+          "Photo cleanup failed:",
+          cleanupError
+        );
       }
     }
-
   } finally {
     setBusy(false);
+    setUploadSavingState(false);
   }
 }
 
 /* ==========================================
-   UPDATE / DELETE
+   RESET UPLOAD FORM
 ========================================== */
 
-async function handleItemClick(event) {
-  const button = event.target.closest("[data-action]");
+function resetUploadForm() {
+  const form = getUploadForm();
 
-  if (!button || busy) return;
+  if (form) {
+    form.reset();
+  }
 
-  const item = finds.find(
-    (x) => String(x.id) === button.dataset.id
+  clearPhotoPreview();
+  formError("");
+}
+
+/* ==========================================
+   INITIALIZE UPLOAD EVENTS
+========================================== */
+
+function initializeUploadEvents() {
+  const dialog = getUploadDialog();
+  const form = getUploadForm();
+  const photoInput = getUploadPhotoInput();
+
+  if (
+    form &&
+    !form.dataset.uploadEventsReady
+  ) {
+    form.dataset.uploadEventsReady = "true";
+
+    form.addEventListener(
+      "submit",
+      saveNewFind
+    );
+  }
+
+  if (
+    photoInput &&
+    !photoInput.dataset.previewEventsReady
+  ) {
+    photoInput.dataset.previewEventsReady = "true";
+
+    photoInput.addEventListener(
+      "change",
+      handlePhotoPreview
+    );
+  }
+
+  if (
+    dialog &&
+    !dialog.dataset.dialogEventsReady
+  ) {
+    dialog.dataset.dialogEventsReady = "true";
+
+    dialog.addEventListener(
+      "click",
+      (event) => {
+        if (event.target === dialog) {
+          closeUpload();
+        }
+      }
+    );
+
+    dialog.addEventListener(
+      "close",
+      () => {
+        document.body.classList.remove(
+          "locked"
+        );
+      }
+    );
+  }
+
+  const closeButton = $("closeUpload");
+
+  if (
+    closeButton &&
+    !closeButton.dataset.closeEventsReady
+  ) {
+    closeButton.dataset.closeEventsReady = "true";
+
+    closeButton.addEventListener(
+      "click",
+      closeUpload
+    );
+  }
+}
+
+/* ==========================================
+   END OF PART 6 / 7
+========================================== */
+
+/* ==========================================
+   PART 7 / 7
+   FINAL CONNECTIONS AND APPLICATION START
+========================================== */
+
+/* ==========================================
+   LOAD SUPABASE LIBRARY
+========================================== */
+
+function loadSupabaseLibrary() {
+  return new Promise((resolve, reject) => {
+    if (
+      window.supabase &&
+      typeof window.supabase.createClient === "function"
+    ) {
+      resolve();
+      return;
+    }
+
+    const existingScript =
+      document.querySelector(
+        'script[data-bow-supabase-library]'
+      );
+
+    if (existingScript) {
+      existingScript.addEventListener(
+        "load",
+        () => resolve(),
+        { once: true }
+      );
+
+      existingScript.addEventListener(
+        "error",
+        () => reject(
+          new Error("Supabase library failed to load.")
+        ),
+        { once: true }
+      );
+
+      return;
+    }
+
+    const script = document.createElement("script");
+
+    script.src =
+      "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js";
+
+    script.dataset.bowSupabaseLibrary = "true";
+
+    script.onload = () => {
+      if (
+        window.supabase &&
+        typeof window.supabase.createClient === "function"
+      ) {
+        resolve();
+      } else {
+        reject(
+          new Error("Supabase library is unavailable.")
+        );
+      }
+    };
+
+    script.onerror = () => {
+      reject(
+        new Error("Supabase library failed to load.")
+      );
+    };
+
+    document.head.appendChild(script);
+  });
+}
+
+/* ==========================================
+   PRIVATE STORAGE PHOTO SUPPORT
+========================================== */
+
+const originalCloudFindsLoader = loadCloudFinds;
+
+loadCloudFinds = async function () {
+  const items = await originalCloudFindsLoader();
+
+  if (!supabaseClient || !currentUser) {
+    return items;
+  }
+
+  await Promise.all(
+    finds.map(async (item) => {
+      const path = item.photo_path;
+
+      if (!path) {
+        return;
+      }
+
+      if (
+        /^https?:\/\//i.test(path) ||
+        path.startsWith("data:")
+      ) {
+        item.photo_url = path;
+        return;
+      }
+
+      try {
+        const { data, error } =
+          await supabaseClient.storage
+            .from(BUCKET)
+            .createSignedUrl(
+              path,
+              60 * 60
+            );
+
+        if (!error && data?.signedUrl) {
+          item.photo_url = data.signedUrl;
+        } else {
+          console.warn(
+            "Signed photo URL unavailable:",
+            path,
+            error
+          );
+        }
+      } catch (error) {
+        console.warn(
+          "Could not load photo:",
+          path,
+          error
+        );
+      }
+    })
   );
 
-  if (!item) return;
+  saveLocalBackup();
+  render();
 
-  if (!await ensureCloudConnection()) {
-    notify(t("connectionError"));
+  const modal = $("waitModal");
+
+  if (
+    modal &&
+    !modal.hidden &&
+    modal.classList.contains("open")
+  ) {
+    renderWaitModal();
+  }
+
+  return finds;
+};
+
+/* ==========================================
+   RESTORE ORIGINAL PAGE COUNTERS
+========================================== */
+
+function renderOriginalCounters() {
+  const counts = getStatusCounts();
+
+  const waitingTotal =
+    counts.waiting + counts.thinking;
+
+  const values = {
+    wishlistCount: waitingTotal,
+    drawerCount: waitingTotal,
+    waitingTotal,
+    boughtTotal: counts.bought
+  };
+
+  Object.entries(values).forEach(
+    ([id, value]) => {
+      const element = $(id);
+
+      if (element) {
+        element.textContent = String(value);
+      }
+    }
+  );
+}
+
+/* ==========================================
+   ORIGINAL WISHLIST DRAWER CONTENT
+========================================== */
+
+function renderDrawerItems() {
+  const container = $("drawerItems");
+
+  if (!container) {
     return;
   }
 
-  if (button.dataset.action === "toggle") {
-    setBusy(true);
+  if (!finds.length) {
+    container.innerHTML = `
+      <div class="drawer-empty">
+        <div class="empty-icon">♡</div>
+        <p>${escapeHTML(t("drawerEmpty"))}</p>
+      </div>
+    `;
 
-    try {
-      const status = item.bought
-        ? "waiting"
-        : "bought";
-
-      const { error } = await supabaseClient
-        .from(TABLE)
-        .update({ status })
-        .eq("id", item.id)
-        .eq("user_id", currentUser.id);
-
-      if (error) throw error;
-
-      await loadCloudFinds();
-
-      notify(
-        status === "bought"
-          ? t("markedBought")
-          : t("markedWaiting")
-      );
-
-    } catch (error) {
-      notify(
-        `${t("updateError")}: ${error.message}`
-      );
-
-    } finally {
-      setBusy(false);
-    }
+    return;
   }
 
-  if (button.dataset.action === "remove") {
-    if (!confirm(t("confirmRemove"))) return;
+  container.innerHTML = finds.map((item) => {
+    const image = getPhotoURL(item);
 
-    setBusy(true);
-
-    try {
-      const { error } = await supabaseClient
-        .from(TABLE)
-        .delete()
-        .eq("id", item.id)
-        .eq("user_id", currentUser.id);
-
-      if (error) throw error;
-
-      await loadCloudFinds();
-
-      if (item.photoPath) {
-        const { error: photoError } =
-          await supabaseClient.storage
-            .from(BUCKET)
-            .remove([item.photoPath]);
-
-        if (photoError) {
-          console.warn(photoError);
+    return `
+      <div class="drawer-item">
+        ${
+          image
+            ? `
+              <img
+                src="${escapeHTML(image)}"
+                alt="${escapeHTML(item.name)}"
+                loading="lazy"
+              >
+            `
+            : `
+              <div class="drawer-placeholder">
+                🎀
+              </div>
+            `
         }
-      }
 
-      notify(t("removed"));
+        <div>
+          <h3>${escapeHTML(item.name)}</h3>
 
-    } catch (error) {
-      notify(
-        `${t("deleteError")}: ${error.message}`
-      );
+          <small>
+            ${escapeHTML(
+              getCategoryLabel(item.category)
+            )}
+            ·
+            ${escapeHTML(formatPrice(item))}
+          </small>
 
-    } finally {
-      setBusy(false);
-    }
-  }
+          <div class="drawer-item-actions">
+            <button
+              type="button"
+              data-bow-drawer-action="open"
+              data-bow-drawer-id="${escapeHTML(item.id)}"
+            >
+              ${escapeHTML(
+                getItemStatusLabel(item)
+              )}
+            </button>
+
+            <button
+              type="button"
+              data-bow-drawer-action="delete"
+              data-bow-drawer-id="${escapeHTML(item.id)}"
+            >
+              ${escapeHTML(t("remove"))}
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join("");
 }
 
 /* ==========================================
-   MODALS
+   COMPATIBLE MAIN RENDER
+========================================== */
+
+const originalMainRender = render;
+
+render = function () {
+  originalMainRender();
+
+  renderOriginalCounters();
+  renderDrawerItems();
+};
+
+/* ==========================================
+   DRAWER FUNCTIONS
 ========================================== */
 
 function openDrawer() {
-  const el = $("wishlistDrawer");
+  const drawer = $("wishlistDrawer");
 
-  if (!el) return;
-
-  el.classList.add("open");
-
-  el.setAttribute(
-    "aria-hidden",
-    "false"
-  );
-
-  if ($("overlay")) {
-    $("overlay").hidden = false;
+  if (!drawer) {
+    openWaitModal("waiting");
+    return;
   }
+
+  renderDrawerItems();
+
+  drawer.classList.add("open");
+  drawer.setAttribute("aria-hidden", "false");
+
+  drawer.style.position = "fixed";
+  drawer.style.left = "50%";
+  drawer.style.top = "50%";
+  drawer.style.right = "auto";
+  drawer.style.bottom = "auto";
+  drawer.style.width = "min(92vw, 720px)";
+  drawer.style.maxWidth = "720px";
+  drawer.style.maxHeight = "85vh";
+  drawer.style.height = "auto";
+  drawer.style.overflowY = "auto";
+  drawer.style.transform = "translate(-50%, -50%)";
+  drawer.style.borderRadius = "24px";
+  drawer.style.zIndex = "1001";
+
+  showOverlay();
 
   document.body.classList.add("locked");
 }
 
 function closeDrawer() {
-  const el = $("wishlistDrawer");
+  const drawer = $("wishlistDrawer");
 
-  if (el) {
-    el.classList.remove("open");
-
-    el.setAttribute(
-      "aria-hidden",
-      "true"
-    );
+  if (drawer) {
+    drawer.classList.remove("open");
+    drawer.setAttribute("aria-hidden", "true");
+    drawer.style.transform = "";
   }
 
-  if ($("overlay")) {
-    $("overlay").hidden = true;
-  }
+  const overlay = $("overlay");
 
-  document.body.classList.remove("locked");
-}
-
-function openUpload() {
-  closeDrawer();
-
-  formError("");
-
-  const dialog = $("uploadDialog");
-
-  if (!dialog) return;
-
-  if (!dialog.open) {
-    dialog.showModal();
-  }
-
-  document.body.classList.add("locked");
-}
-
-function closeUpload() {
-  const dialog = $("uploadDialog");
-
-  if (dialog?.open) {
-    dialog.close();
+  if (overlay) {
+    overlay.hidden = true;
+    overlay.classList.remove("open");
   }
 
   document.body.classList.remove("locked");
+
+  hideOverlayIfUnused();
 }
+
+/* ==========================================
+   WAIT MODAL CSS COMPATIBILITY
+========================================== */
+
+function installWaitModalStyles() {
+  if ($("bowWaitModalCompatibilityStyles")) {
+    return;
+  }
+
+  const style = document.createElement("style");
+
+  style.id = "bowWaitModalCompatibilityStyles";
+
+  style.textContent = `
+    #waitModal.wait-modal {
+      position: fixed !important;
+      inset: 0 !important;
+      z-index: 9999 !important;
+      width: 100% !important;
+      height: 100% !important;
+      max-width: none !important;
+      max-height: none !important;
+      margin: 0 !important;
+      padding: 20px !important;
+      border: 0 !important;
+      background: transparent !important;
+      box-sizing: border-box !important;
+      overflow-y: auto !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      transform: none !important;
+    }
+
+    #waitModal.wait-modal[hidden] {
+      display: none !important;
+    }
+
+    #waitModal .wait-modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(43, 38, 45, 0.48);
+    }
+
+    #waitModal .wait-modal-panel {
+      position: relative;
+      z-index: 1;
+      width: min(100%, 820px);
+      max-height: min(88vh, 900px);
+      overflow-y: auto;
+      padding: 36px 28px;
+      background: #fffdf9;
+      border: 2px solid #3c3335;
+      border-radius: 26px;
+      box-shadow: 8px 9px 0 rgba(45, 40, 45, 0.18);
+      box-sizing: border-box;
+    }
+
+    #waitModal .wait-modal-close {
+      position: absolute;
+      top: 14px;
+      right: 18px;
+      width: 38px;
+      height: 38px;
+      border: 1px solid #4c4146;
+      border-radius: 50%;
+      background: #fff;
+      color: #352d31;
+      font-size: 26px;
+      line-height: 1;
+      cursor: pointer;
+    }
+
+    #waitModal .wait-modal-header {
+      text-align: center;
+      padding: 6px 28px 16px;
+    }
+
+    #waitModal .wait-modal-header h2 {
+      margin: 0 0 10px;
+      font-size: clamp(24px, 4vw, 34px);
+      color: #3a3035;
+    }
+
+    #waitModal .wait-modal-header p {
+      margin: 0;
+      color: #766a6e;
+      line-height: 1.6;
+    }
+
+    #waitModal .wait-modal-tabs {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin: 20px 0 26px;
+    }
+
+    #waitModal .wait-tab {
+      min-width: 0;
+      padding: 14px 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      border: 2px solid #4b4246;
+      border-radius: 15px;
+      background: #fff;
+      color: #3b3337;
+      font: inherit;
+      cursor: pointer;
+      transition: transform .15s, background .15s;
+    }
+
+    #waitModal .wait-tab.active {
+      background: #fce5a5;
+      transform: translateY(-2px);
+      box-shadow: 2px 3px 0 #4b4246;
+    }
+
+    #waitModal .wait-tab strong {
+      font-size: 21px;
+    }
+
+    #waitModal .wait-modal-section-title {
+      margin: 0 0 18px;
+      text-align: center;
+      color: #44383d;
+      font-size: 19px;
+    }
+
+    #waitModal .wait-modal-grid {
+      display: grid;
+      grid-template-columns: repeat(
+        auto-fit,
+        minmax(min(100%, 220px), 1fr)
+      );
+      gap: 18px;
+    }
+
+    #waitModal .wait-product {
+      min-width: 0;
+      padding: 16px;
+      border: 2px solid #51484a;
+      border-radius: 18px;
+      box-shadow: 3px 4px 0 rgba(50, 45, 50, .12);
+    }
+
+    #waitModal .wait-product-photo {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      border-radius: 12px;
+      background: rgba(255,255,255,.75);
+    }
+
+    #waitModal .wait-product-image {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+    }
+
+    #waitModal .wait-photo-empty {
+      font-size: 45px;
+      color: #a68b95;
+    }
+
+    #waitModal .wait-product-price {
+      padding: 14px 4px 12px;
+      text-align: center;
+      color: #383037;
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    #waitModal .wait-product-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    #waitModal .wait-action {
+      flex: 1 1 90px;
+      min-height: 43px;
+      padding: 8px;
+      border: 1.5px solid #51474a;
+      border-radius: 11px;
+      background: #fffdf8;
+      color: #40363a;
+      font: inherit;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    #waitModal .wait-action-bought {
+      background: #fce4a3;
+    }
+
+    #waitModal .wait-action-thinking {
+      background: #f9dce6;
+    }
+
+    #waitModal .wait-action-waiting {
+      background: #dcecf5;
+    }
+
+    #waitModal .wait-modal-empty {
+      grid-column: 1 / -1;
+      padding: 45px 15px;
+      text-align: center;
+      color: #776a6e;
+    }
+
+    #waitModal.updating .wait-action {
+      pointer-events: none;
+      opacity: .6;
+    }
+
+    @media (max-width: 600px) {
+      #waitModal.wait-modal {
+        padding: 12px !important;
+      }
+
+      #waitModal .wait-modal-panel {
+        padding: 38px 16px 22px;
+        border-radius: 20px;
+      }
+
+      #waitModal .wait-modal-tabs {
+        gap: 6px;
+      }
+
+      #waitModal .wait-tab {
+        padding: 12px 4px;
+        font-size: 12px;
+      }
+
+      #waitModal .wait-modal-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      #waitModal .wait-product {
+        padding: 9px;
+      }
+
+      #waitModal .wait-product-price {
+        font-size: 16px;
+      }
+
+      #waitModal .wait-action {
+        font-size: 11px;
+        min-height: 38px;
+      }
+    }
+  `;
+
+  document.head.appendChild(style);
+}
+
+/* ==========================================
+   EVENT HELPER
+========================================== */
 
 function bindClick(id, handler) {
   const element = $(id);
 
-  if (element) {
-    element.addEventListener(
-      "click",
-      handler
-    );
+  if (!element) {
+    return;
   }
+
+  const key = "bowBoundClick";
+
+  if (element.dataset[key]) {
+    return;
+  }
+
+  element.dataset[key] = "true";
+
+  element.addEventListener("click", handler);
 }
 
 /* ==========================================
-   BUTTON EVENTS
+   HOMEPAGE BUTTONS
 ========================================== */
 
-function initializeEvents() {
-  [
-    "openWishlist",
-    "heroWishlist",
-    "stepWishlist"
-  ].forEach((id) => {
-    bindClick(id, openDrawer);
-  });
+function initializeHomepageButtons() {
 
-  [
-    "closeWishlist",
-    "drawerCloseBottom"
-  ].forEach((id) => {
-    bindClick(id, closeDrawer);
-  });
-
-  bindClick(
-    "overlay",
-    closeDrawer
-  );
-
+  // 第一张卡片：마음에 담기
   [
     "uploadTop",
     "heroUpload",
@@ -1253,250 +3531,359 @@ function initializeEvents() {
     "findsUpload",
     "drawerUpload"
   ].forEach((id) => {
-    bindClick(id, openUpload);
+    bindClick(id, (event) => {
+      event.preventDefault();
+      openUpload();
+    });
   });
 
-  bindClick(
-    "closeUpload",
-    closeUpload
-  );
+  // 第二张卡片：잠깐 기다리기
+  // 统一打开中央等待弹窗，不再打开侧边栏。
+  [
+    "openWishlist",
+    "heroWishlist",
+    "stepWishlist"
+  ].forEach((id) => {
+    bindClick(id, (event) => {
+      event.preventDefault();
+      openWaitModal("waiting");
+    });
+  });
 
+  // 原有侧边栏关闭按钮
+  [
+    "closeWishlist",
+    "drawerCloseBottom"
+  ].forEach((id) => {
+    bindClick(id, closeDrawer);
+  });
+
+  // 第三张卡片及 3D 房间按钮
   [
     "roomNav",
     "roomMobile",
     "roomButton"
   ].forEach((id) => {
-    bindClick(id, () => {
+    bindClick(id, (event) => {
+      event.preventDefault();
       notify(t("roomNotice"));
     });
   });
 
-  bindClick("menuButton", () => {
-    const menu = $("mobileNav");
-
-    if (!menu) return;
-
-    menu.hidden = !menu.hidden;
-
-    $("menuButton")?.setAttribute(
-      "aria-expanded",
-      String(!menu.hidden)
-    );
+  // 旧遮罩层
+  bindClick("overlay", () => {
+    closeDrawer();
   });
+}
 
-  $("mobileNav")
-    ?.querySelectorAll("a")
-    .forEach((link) => {
+/* ==========================================
+   LANGUAGE BUTTONS
+========================================== */
+
+function initializeLanguageEvents() {
+  document
+    .querySelectorAll(".language-switch button")
+    .forEach((button) => {
+      if (button.dataset.bowLanguageReady) {
+        return;
+      }
+
+      button.dataset.bowLanguageReady = "true";
+
+      button.addEventListener("click", () => {
+        applyLanguage(button.dataset.lang);
+
+        document
+          .querySelectorAll(
+            ".language-switch button"
+          )
+          .forEach((element) => {
+            const active =
+              element.dataset.lang === currentLang;
+
+            element.classList.toggle(
+              "selected",
+              active
+            );
+
+            element.setAttribute(
+              "aria-pressed",
+              String(active)
+            );
+          });
+
+        render();
+      });
+    });
+}
+
+/* ==========================================
+   MOBILE NAVIGATION
+========================================== */
+
+function initializeMobileMenu() {
+  const menuButton = $("menuButton");
+  const mobileNav = $("mobileNav");
+
+  if (!menuButton || !mobileNav) {
+    return;
+  }
+
+  if (!menuButton.dataset.bowMenuReady) {
+    menuButton.dataset.bowMenuReady = "true";
+
+    menuButton.addEventListener("click", () => {
+      mobileNav.hidden = !mobileNav.hidden;
+
+      menuButton.setAttribute(
+        "aria-expanded",
+        String(!mobileNav.hidden)
+      );
+    });
+  }
+
+  mobileNav.querySelectorAll("a").forEach(
+    (link) => {
+      if (link.dataset.bowNavReady) {
+        return;
+      }
+
+      link.dataset.bowNavReady = "true";
+
       link.addEventListener("click", () => {
-        $("mobileNav").hidden = true;
+        mobileNav.hidden = true;
 
-        $("menuButton")?.setAttribute(
+        menuButton.setAttribute(
           "aria-expanded",
           "false"
         );
       });
-    });
-
-  $("uploadDialog")?.addEventListener(
-    "close",
-    () => {
-      document.body.classList.remove(
-        "locked"
-      );
     }
   );
+}
 
-  $("uploadDialog")?.addEventListener(
+/* ==========================================
+   DRAWER ITEM BUTTONS
+========================================== */
+
+function initializeDrawerEvents() {
+  const container = $("drawerItems");
+
+  if (!container || container.dataset.bowEventsReady) {
+    return;
+  }
+
+  container.dataset.bowEventsReady = "true";
+
+  container.addEventListener(
     "click",
-    (event) => {
-      if (
-        event.target === $("uploadDialog")
-      ) {
-        closeUpload();
-      }
-    }
-  );
-
-  $("uploadForm")?.addEventListener(
-    "submit",
-    saveNewFind
-  );
-
-  /* ==========================================
-     PHOTO PREVIEW
-  ========================================== */
-
-  $("itemPhoto")?.addEventListener(
-    "change",
     async (event) => {
-      const file = event.target.files?.[0];
+      const button = event.target.closest(
+        "[data-bow-drawer-action]"
+      );
 
-      if (!file) return;
-
-      if (
-        ![
-          "image/jpeg",
-          "image/png",
-          "image/webp"
-        ].includes(file.type) ||
-        file.size > 5 * 1024 * 1024
-      ) {
-        formError(t("imageInvalid"));
-
-        event.target.value = "";
-
+      if (!button) {
         return;
       }
 
-      try {
-        const blob = await shrinkImage(file);
+      const action =
+        button.dataset.bowDrawerAction;
 
-        if (photoPreviewURL) {
-          URL.revokeObjectURL(
-            photoPreviewURL
-          );
-        }
+      const itemId =
+        button.dataset.bowDrawerId;
 
-        photoPreviewURL =
-          URL.createObjectURL(blob);
-
-        $("photoPreview").src =
-          photoPreviewURL;
-
-        $("photoPreview").hidden = false;
-
-        $("photoPrompt").hidden = true;
-
-        formError("");
-
-      } catch (error) {
-        formError(t("imageError"));
-      }
-    }
-  );
-
-  /* ==========================================
-     FIND CARD BUTTONS
-  ========================================== */
-
-  $("findsGrid")?.addEventListener(
-    "click",
-    (event) => {
-      if (
-        event.target.closest(
-          "#emptyUpload"
-        )
-      ) {
-        openUpload();
-      } else {
-        handleItemClick(event);
-      }
-    }
-  );
-
-  $("drawerItems")?.addEventListener(
-    "click",
-    handleItemClick
-  );
-
-  /* ==========================================
-     FILTER BUTTONS
-  ========================================== */
-
-  document
-    .querySelectorAll(".filter")
-    .forEach((button) => {
-      button.addEventListener(
-        "click",
-        () => {
-          filter =
-            button.dataset.filter || "all";
-
-          document
-            .querySelectorAll(".filter")
-            .forEach((el) => {
-              el.classList.toggle(
-                "active",
-                el === button
-              );
-            });
-
-          render();
-        }
+      const item = finds.find(
+        (entry) => String(entry.id) === String(itemId)
       );
-    });
 
-  /* ==========================================
-     LANGUAGE SWITCH
-  ========================================== */
+      if (!item) {
+        return;
+      }
 
-  document
-    .querySelectorAll(
-      ".language-switch button"
-    )
-    .forEach((button) => {
-      button.addEventListener(
-        "click",
-        () => {
-          applyLanguage(
-            button.dataset.lang
-          );
-        }
-      );
-    });
-
-  /* ==========================================
-     ESCAPE KEY
-  ========================================== */
-
-  document.addEventListener(
-    "keydown",
-    (event) => {
-      if (
-        event.key === "Escape" &&
-        $("wishlistDrawer")
-          ?.classList.contains("open")
-      ) {
+      if (action === "open") {
         closeDrawer();
+        openWaitModal(getItemStatus(item));
+        return;
+      }
+
+      if (action === "delete") {
+        if (!window.confirm(t("confirmRemove"))) {
+          return;
+        }
+
+        try {
+          await deleteCloudItem(itemId);
+          notify(t("removed"));
+        } catch (error) {
+          notify(
+            `${t("deleteError")}: ${error.message}`
+          );
+        }
       }
     }
   );
 }
 
 /* ==========================================
-   START APPLICATION
+   EMPTY LIST UPLOAD BUTTON
 ========================================== */
 
-function startApplication() {
-  try {
-    currentLang =
-      localStorage.getItem(
-        LANGUAGE_KEY
-      ) || "ko";
+function initializeEmptyListEvents() {
+  const grid = $("findsGrid");
 
-  } catch {
-    currentLang = "ko";
+  if (!grid || grid.dataset.bowEmptyReady) {
+    return;
   }
 
-  finds = getLocalBackup();
+  grid.dataset.bowEmptyReady = "true";
 
+  grid.addEventListener("click", (event) => {
+    const button = event.target.closest(
+      "[data-open-upload], #emptyUpload"
+    );
+
+    if (!button) {
+      return;
+    }
+
+    event.preventDefault();
+    openUpload();
+  });
+}
+
+/* ==========================================
+   FIX LANGUAGE PLACEHOLDERS
+========================================== */
+
+const originalLanguageFunction = applyLanguage;
+
+applyLanguage = function (language) {
+  originalLanguageFunction(language);
+
+  const nameInput = $("itemName");
+  const noteInput = $("itemNote");
+
+  if (nameInput) {
+    nameInput.placeholder = t("namePlaceholder");
+  }
+
+  if (noteInput) {
+    noteInput.placeholder = t("notePlaceholder");
+  }
+
+  document
+    .querySelectorAll(".language-switch button")
+    .forEach((button) => {
+      button.classList.toggle(
+        "selected",
+        button.dataset.lang === currentLang
+      );
+    });
+
+  const modal = $("waitModal");
+
+  if (modal && !modal.hidden) {
+    renderWaitModal();
+  }
+};
+
+/* ==========================================
+   INITIALIZE ALL EVENTS
+========================================== */
+
+function initializeEvents() {
+  initializeHomepageButtons();
+
+  initializeLanguageEvents();
+
+  initializeMobileMenu();
+
+  initializeFindsEvents();
+
+  initializeDrawerEvents();
+
+  initializeEmptyListEvents();
+
+  initializeUploadEvents();
+
+  initializeWaitModalKeyboard();
+}
+
+/* ==========================================
+   APPLICATION START
+========================================== */
+
+let applicationStarted = false;
+
+async function startApplication() {
+  if (applicationStarted) {
+    return;
+  }
+
+  applicationStarted = true;
+
+  console.log(
+    "[BUY OR WAIT?] Starting application..."
+  );
+
+  // 1. 恢复语言
+  currentLang = getSavedLanguage();
+
+  // 2. 先读取本地备份
+  finds = loadLocalBackup();
+
+  // 3. 安装中央弹窗兼容样式
+  installWaitModalStyles();
+
+  // 4. 创建等待弹窗
+  createWaitModal();
+
+  // 5. 绑定所有按钮
   initializeEvents();
 
+  // 6. 应用语言
   applyLanguage(currentLang);
 
-  initializeSupabase();
+  // 7. 显示已有商品
+  render();
+
+  // 8. 加载 Supabase
+  try {
+    await loadSupabaseLibrary();
+
+    const connected =
+      await initializeSupabase();
+
+    if (!connected) {
+      console.warn(
+        "[BUY OR WAIT?] Running with local backup."
+      );
+    }
+  } catch (error) {
+    console.error(
+      "[BUY OR WAIT?] Startup error:",
+      error
+    );
+
+    notify(
+      `${t("connectionError")}: ${error.message}`
+    );
+  }
+
+  console.log(
+    "[BUY OR WAIT?] Initialization finished."
+  );
 }
 
 /* ==========================================
    DOM READY
 ========================================== */
 
-if (
-  document.readyState === "loading"
-) {
+if (document.readyState === "loading") {
   document.addEventListener(
     "DOMContentLoaded",
-    startApplication
+    startApplication,
+    { once: true }
   );
 } else {
   startApplication();
@@ -1504,4 +3891,342 @@ if (
 
 /* ==========================================
    END OF SCRIPT.JS
+   BUY OR WAIT?
+   PART 7 / 7
 ========================================== */
+
+/* ==========================================
+   SIMILAR ITEMS COMPARISON
+   마음에 담기 - 비슷한 물건 알림
+========================================== */
+
+const SIMILAR_TEXT = {
+  ko: {
+    title: "앗! 비슷한 물건이 있어요!",
+    count: n => `이미 담아둔 물건 중 비슷한 물건 ${n}개를 찾았어요.`,
+    compare: "비슷한 물건 비교하기",
+    newItem: "새로 발견한 물건",
+    continue: "그래도 마음에 담기 ♡",
+    back: "다시 생각하기",
+    waiting: "기다리는 중",
+    thinking: "다시 생각 중",
+    bought: "이미 샀어요"
+  },
+  zh: {
+    title: "咦！你已经有相似的物品啦！",
+    count: n => `找到了 ${n} 件之前收藏过的相似物品。`,
+    compare: "比较相似物品",
+    newItem: "刚发现的物品",
+    continue: "还是想收藏 ♡",
+    back: "再想一想",
+    waiting: "等待中",
+    thinking: "重新考虑中",
+    bought: "已经购买"
+  },
+  en: {
+    title: "Oh! You have something similar!",
+    count: n => `Found ${n} similar saved item(s).`,
+    compare: "Compare similar finds",
+    newItem: "New find",
+    continue: "Save it anyway ♡",
+    back: "Think again",
+    waiting: "Waiting",
+    thinking: "Thinking again",
+    bought: "Already bought"
+  }
+};
+
+let similarSaveApproved = false;
+
+function similarWords(value) {
+  const stopWords = new Set([
+    "the", "and", "with", "small", "cute",
+    "tiny", "little", "new", "pink",
+    "white", "black", "blue",
+    "작은", "귀여운", "핑크", "화이트",
+    "블랙", "미니", "예쁜",
+    "可爱", "小", "粉色", "白色", "黑色"
+  ]);
+
+  return String(value || "")
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .split(/\s+/)
+    .filter(word =>
+      word.length >= 2 &&
+      !stopWords.has(word)
+    );
+}
+
+function findSimilarItems(name, category) {
+  const inputName = String(name || "")
+    .trim()
+    .toLowerCase();
+
+  const inputWords = similarWords(inputName);
+
+  if (!inputName) return [];
+
+  return finds
+    .map(item => {
+      const oldName = String(item.name || "")
+        .trim()
+        .toLowerCase();
+
+      const oldWords = similarWords(oldName);
+
+      const sameCategory =
+        item.category === category;
+
+      const exactName =
+        oldName === inputName;
+
+      const commonWords = inputWords.filter(word =>
+        oldWords.some(oldWord =>
+          oldWord === word ||
+          (word.length >= 3 &&
+           oldWord.includes(word)) ||
+          (oldWord.length >= 3 &&
+           word.includes(oldWord))
+        )
+      );
+
+      let score = 0;
+
+      if (exactName) score += 10;
+
+      score += commonWords.length * 3;
+
+      if (sameCategory) score += 1;
+
+      return { item, score };
+    })
+    .filter(result => result.score >= 3)
+    .sort((a, b) => b.score - a.score)
+    .map(result => result.item);
+}
+
+function similarStatusText(item, words) {
+  const status = normalizeStatus(item.status);
+
+  return words[status] || words.waiting;
+}
+
+function renderSimilarComparison(matches) {
+  const area = $("similarCompareArea");
+
+  if (!area) return;
+
+  const words =
+    SIMILAR_TEXT[currentLang] ||
+    SIMILAR_TEXT.ko;
+
+  const name = $("itemName")?.value || "";
+
+  const price = Number($("itemPrice")?.value || 0);
+
+  const newPhoto = $("photoPreview");
+  const newPhotoSrc =
+    newPhoto && !newPhoto.hidden
+      ? newPhoto.src
+      : "";
+
+  const newItem = {
+    name,
+    price,
+    currency: "KRW"
+  };
+
+  const card = (item, isNew = false) => {
+    const photo = isNew
+      ? newPhotoSrc
+      : getPhotoURL(item);
+
+    const status = isNew
+      ? words.newItem
+      : similarStatusText(item, words);
+
+    return `
+      <div class="similar-item-card">
+        <div class="similar-item-image">
+          ${
+            photo
+              ? `<img
+                   src="${escapeHTML(photo)}"
+                   alt="${escapeHTML(item.name)}"
+                 >`
+              : `<span>♡</span>`
+          }
+        </div>
+
+        <div class="similar-item-name">
+          ${escapeHTML(item.name)}
+        </div>
+
+        <div class="similar-item-price">
+          ${escapeHTML(formatPrice(item))}
+        </div>
+
+        <span class="similar-item-status">
+          ${escapeHTML(status)}
+        </span>
+      </div>
+    `;
+  };
+
+  area.innerHTML = `
+    <div class="similar-notice">
+      <div class="similar-notice-icon">♡</div>
+
+      <h3>${escapeHTML(words.title)}</h3>
+
+      <p>${escapeHTML(words.count(matches.length))}</p>
+
+      <div class="similar-comparison-heading">
+        ${escapeHTML(words.compare)}
+      </div>
+
+      <div class="similar-items-grid">
+        ${card(newItem, true)}
+        ${matches.slice(0, 6).map(item =>
+          card(item)
+        ).join("")}
+      </div>
+
+      <div class="similar-comparison-actions">
+        <button
+          type="button"
+          class="btn btn-outline"
+          id="similarBackButton"
+        >
+          ${escapeHTML(words.back)}
+        </button>
+
+        <button
+          type="button"
+          class="btn btn-yellow"
+          id="similarContinueButton"
+        >
+          ${escapeHTML(words.continue)}
+        </button>
+      </div>
+    </div>
+  `;
+
+  area.hidden = false;
+
+  // 다시 생각하기：不收藏，直接退出
+  $("similarBackButton").addEventListener(
+    "click",
+    (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      similarSaveApproved = false;
+
+      area.hidden = true;
+      area.innerHTML = "";
+
+      closeUpload();
+    }
+  );
+
+
+    $("similarContinueButton").addEventListener(
+    "click",
+    () => {
+      if (busy) return;
+
+      similarSaveApproved = true;
+
+      const form = $("uploadForm");
+
+      if (form) {
+        form.requestSubmit();
+      }
+    }
+  );
+
+  area.scrollIntoView({
+    behavior: "smooth",
+    block: "nearest"
+  });
+}
+
+
+function initializeSimilarComparison() {
+  const form = $("uploadForm");
+
+  if (!form || form.dataset.similarReady) {
+    return;
+  }
+
+  form.dataset.similarReady = "true";
+
+  form.addEventListener(
+    "submit",
+    event => {
+      if (similarSaveApproved) {
+        similarSaveApproved = false;
+        return;
+      }
+
+      const name = $("itemName")?.value.trim();
+
+      const category =
+        $("itemCategory")?.value || "";
+
+      const matches = findSimilarItems(
+        name,
+        category
+      );
+
+      if (!matches.length) {
+        return;
+      }
+
+      event.preventDefault();
+      event.stopImmediatePropagation();
+
+      renderSimilarComparison(matches);
+    },
+    true
+  );
+
+  const clearComparison = () => {
+    const area = $("similarCompareArea");
+
+    if (area) {
+      area.hidden = true;
+      area.innerHTML = "";
+    }
+  };
+
+  ["itemName", "itemCategory", "itemPrice", "itemPhoto"]
+    .forEach(id => {
+      const input = $(id);
+
+      if (input) {
+        input.addEventListener(
+          "change",
+          clearComparison
+        );
+      }
+    });
+
+  $("itemName")?.addEventListener(
+    "input",
+    clearComparison
+  );
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener(
+    "DOMContentLoaded",
+    initializeSimilarComparison
+  );
+} else {
+  initializeSimilarComparison();
+}
+
+/* END SIMILAR ITEMS COMPARISON */

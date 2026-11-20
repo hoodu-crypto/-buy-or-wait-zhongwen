@@ -16,7 +16,7 @@
     rel="stylesheet"
   />
 
-  <link rel="stylesheet" href="style.css?v=20261120-fontfix1" />
+  <link rel="stylesheet" href="style.css?v=20261120-centered2" />
 
   <!-- Load Supabase library first -->
   <script
@@ -25,7 +25,8 @@
   ></script>
 
   <!-- Main website functionality -->
-  <script src="script.js?v=20261120b" defer></script>
+  <script src="script.js?v=20261120-centered2" defer></script>
+  <script src="collection.js?v=20261120-purchased2" defer></script>
 </head>
 
 <body>
@@ -302,7 +303,9 @@
             02 / PAUSE IT
           </span>
 
-          <div class="step-emoji">💭</div>
+          <div class="step-emoji step-cat">
+  <img src="assets/waiting_cat.png" alt="기다리는 고양이">
+</div>
 
           <h3 data-i18n="step2">
             Give it a moment
@@ -329,19 +332,20 @@
             03 / KEEP IT
           </span>
 
-          <div class="step-emoji">🎀</div>
+          <div class="step-emoji step-camera"><img src="assets/yigou.PNG" alt="구매한 소품들" /></div>
 
           <h3 data-i18n="step3">
             Choose your ending
           </h3>
 
-          <a
+          <button
+            type="button"
+            id="stepDecide"
             class="text-link step-action-button"
-            href="#finds"
             data-i18n="stepButton3"
           >
             MY LITTLE FINDS ↗
-          </a>
+          </button>
 
         </article>
 
@@ -674,7 +678,7 @@
 
         <span id="photoPrompt">
 
-          📷<br>
+          <img class="upload-camera-icon" src="assets/camera_icon_transparent.png" alt="" aria-hidden="true" />
 
           <strong data-i18n="photoPrompt">
             Tap to take a photo or upload one
@@ -804,6 +808,15 @@
 
       </label>
 
+<!-- SIMILAR ITEMS COMPARISON -->
+<div
+  id="similarCompareArea"
+  class="similar-compare-area"
+  aria-live="polite"
+  hidden
+></div>
+<!-- END SIMILAR ITEMS COMPARISON -->
+
       <!-- SAVE BUTTON -->
       <div class="modal-actions">
 
@@ -826,6 +839,23 @@
 
     </form>
 
+  </dialog>
+
+
+  <!-- UNIFIED CENTERED WAITING / DECISION MODAL -->
+  <dialog class="wait-dialog" id="waitDialog" aria-labelledby="waitDialogTitle">
+    <div class="wait-dialog-top">
+      <button type="button" class="close-button" id="closeWaitDialog" aria-label="Close">×</button>
+    </div>
+    <h2 id="waitDialogTitle" data-i18n="waitDialogTitle">잠깐만 기다려볼까?</h2>
+    <p class="wait-dialog-desc" data-i18n="waitDialogDesc">오늘도 천천히 마음에 담아둔 물건을 살펴봐요.</p>
+    <div class="wait-dialog-tabs" role="group" aria-label="물건 상태">
+      <button type="button" class="wait-dialog-tab active" data-wait-tab="waiting" aria-pressed="true"><span data-i18n="waitTabWaiting">기다리는 중</span><b id="waitCountWaiting">0</b></button>
+      <button type="button" class="wait-dialog-tab" data-wait-tab="thinking" aria-pressed="false"><span data-i18n="waitTabThinking">다시 생각 중</span><b id="waitCountThinking">0</b></button>
+      <button type="button" class="wait-dialog-tab" data-wait-tab="bought" aria-pressed="false"><span data-i18n="waitTabBought">이미 샀어요</span><b id="waitCountBought">0</b></button>
+    </div>
+    <h3 class="wait-dialog-list-title" id="waitListTitle">기다리고 있는 귀여운 것들</h3>
+    <div class="wait-dialog-items" id="waitItems"></div>
   </dialog>
 
   <!-- TOAST -->

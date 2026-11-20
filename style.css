@@ -757,3 +757,868 @@ html body .upload-dialog .btn {
     font-size: 12px !important;
   }
 }
+
+
+/* ============================================================
+   BUY OR WAIT — readable upload dialog + transparent camera
+   2026-11-20: overrides only; keeps original design and behavior
+   ============================================================ */
+
+/* Use the installed Korean handwriting font for modal body text. */
+html body .upload-dialog,
+html body .upload-dialog :is(p, label, span, strong, small, input, select, option, button),
+html body .drawer :is(p, label, span, small, input, select, button) {
+  font-family: "ParkDaHyun", "Apple SD Gothic Neo", sans-serif !important;
+}
+
+/* The modal's large heading retains the round display font. */
+html body .upload-dialog .modal-top h2,
+html body .drawer-header h2 {
+  font-family: "Cafe24SsurroundLocal", "Cafe24SsurroundWeb", sans-serif !important;
+}
+
+html body .upload-dialog {
+  width: min(540px, calc(100% - 24px));
+  padding: clamp(20px, 4vw, 32px);
+  line-height: 1.45;
+}
+html body .upload-dialog .section-kicker {
+  font-size: 15px;
+  letter-spacing: .035em;
+}
+html body .upload-dialog .modal-top h2 {
+  font-size: clamp(31px, 6vw, 40px);
+  line-height: 1.25;
+}
+html body .upload-dialog form > p {
+  font-size: 18px;
+  line-height: 1.5;
+  margin: 14px 0 18px;
+}
+html body .upload-dialog .photo-zone {
+  min-height: 195px;
+  margin: 16px 0 22px;
+  padding: 18px 12px;
+}
+html body .upload-dialog #photoPrompt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  font-size: 18px;
+  line-height: 1.4;
+}
+/* Override the existing .photo-zone img preview rule for the icon only. */
+html body .upload-dialog .photo-zone .upload-camera-icon {
+  display: block;
+  width: 86px !important;
+  height: 86px !important;
+  max-width: 45%;
+  object-fit: contain;
+  background: transparent;
+  flex: 0 0 auto;
+  margin: 0 auto 3px;
+}
+html body .upload-dialog .photo-zone strong {
+  font-size: 19px;
+  line-height: 1.35;
+  font-weight: 400;
+  margin: 0;
+}
+html body .upload-dialog .photo-zone small {
+  font-size: 15px;
+  line-height: 1.35;
+  margin: 0;
+}
+html body .upload-dialog .field {
+  gap: 9px;
+  margin-bottom: 18px;
+  font-size: 16px;
+  letter-spacing: .015em;
+  font-weight: 400;
+}
+html body .upload-dialog .field > span {
+  font-size: 16px;
+  line-height: 1.3;
+}
+html body .upload-dialog .field input,
+html body .upload-dialog .field select {
+  min-height: 52px;
+  padding: 12px 15px;
+  border-radius: 12px;
+  font-size: 18px;
+  line-height: 1.3;
+  letter-spacing: 0;
+}
+html body .upload-dialog .field input::placeholder {
+  color: #87766c;
+  opacity: 1;
+}
+html body .upload-dialog .modal-actions .btn {
+  min-height: 58px;
+  font-size: 20px !important;
+  padding: 14px 20px;
+  line-height: 1.35 !important;
+}
+html body .upload-dialog .form-error {
+  font-size: 16px;
+  line-height: 1.45;
+}
+html body .upload-dialog .close-button {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  font-size: 26px !important;
+}
+
+/* Make small UI controls legible across the rest of the website. */
+html body .announcement { font-size: 15px; }
+html body .section-kicker { font-size: 15px; }
+html body .step-number { font-size: 15px; }
+html body .filter { font-size: 17px !important; min-height: 44px; }
+html body .mini-button { font-size: 15px !important; min-height: 40px; }
+html body .find-meta { font-size: 15px; }
+html body .status-pill { font-size: 14px; }
+html body .finds-heading p,
+html body .room-copy p { font-size: 18px; }
+html body .drawer-message { font-size: 17px; line-height: 1.5; }
+html body .drawer-item small,
+html body .drawer-item-actions button,
+html body .drawer-stats { font-size: 16px; }
+html body .drawer-item-actions button { min-height: 36px; }
+html body .drawer-bottom .btn { min-height: 50px; font-size: 18px !important; }
+html body .toast { font-size: 16px; }
+html body .ticker div { font-size: 18px; }
+
+@media (max-width: 720px) {
+  html body .upload-dialog {
+    width: calc(100% - 18px);
+    padding: 20px;
+    max-height: 94dvh;
+  }
+  html body .upload-dialog .section-kicker { font-size: 15px; }
+  html body .upload-dialog form > p { font-size: 18px; }
+  html body .upload-dialog .photo-zone { min-height: 185px; }
+  html body .upload-dialog .photo-zone .upload-camera-icon {
+    width: 78px !important;
+    height: 78px !important;
+  }
+  html body .upload-dialog .photo-zone strong { font-size: 19px; }
+  html body .upload-dialog .photo-zone small { font-size: 15px; }
+  html body .upload-dialog .field > span { font-size: 17px; }
+  html body .upload-dialog .field input,
+  html body .upload-dialog .field select { font-size: 18px; min-height: 54px; }
+  html body .upload-dialog .modal-actions .btn { font-size: 20px !important; }
+  html body .ticker div { font-size: 16px; }
+  html body .step-number { font-size: 15px; }
+  html body .filter { font-size: 17px !important; }
+  html body .finds-heading .btn { font-size: 16px !important; min-height: 44px; }
+  html body .hero-buttons .btn { font-size: 17px !important; min-height: 48px; }
+}
+
+@media (max-width: 420px) {
+  html body .upload-dialog .field-row { grid-template-columns: 1fr; gap: 0; }
+  html body .upload-dialog { padding: 17px; }
+}
+
+/* ===== 2026-11-20: BIGGER HANDWRITTEN UI + HERO STICKER ===== */
+/* Sticker: SO CUTE smaller, but wait larger and more prominent. */
+html body .art-card { gap: 7px; }
+html body .art-card strong {
+  font-family: "ParkDaHyun", "Fredoka", sans-serif !important;
+  font-size: 20px !important;
+  line-height: 1.1;
+  text-align: center;
+}
+html body .art-card small {
+  font-family: "ParkDaHyun", sans-serif !important;
+  font-size: 25px !important;
+  line-height: 1.1;
+  font-weight: 700;
+  text-align: center;
+  white-space: nowrap;
+}
+/* Small print throughout the page: readable on mobile. */
+html body .announcement { font-size: 18px !important; line-height: 1.5; }
+html body .desktop-nav a,
+html body .desktop-nav .nav-link { font-size: 18px !important; }
+html body .mobile-nav a,
+html body .mobile-nav button { font-size: 21px !important; min-height: 44px; }
+html body .language-switch button { font-size: 17px !important; min-height: 35px; min-width: 35px; }
+html body .section-kicker,
+html body .step-number { font-size: 18px !important; line-height: 1.45; }
+html body .hero-lead { font-size: clamp(24px, 2.6vw, 34px) !important; line-height: 1.4 !important; }
+html body .hero-buttons .btn,
+html body .step-action-button,
+html body .step-card .text-link,
+html body .finds-heading .btn { font-size: 20px !important; line-height: 1.35 !important; min-height: 48px; }
+html body .ticker div { font-size: 21px !important; line-height: 1.6 !important; }
+html body .section-head p,
+html body .finds-heading p,
+html body .room-copy p,
+html body .room-copy small { font-size: 20px !important; line-height: 1.65; }
+html body .filter { font-size: 20px !important; min-height: 48px; }
+html body .find-info h3,
+html body .drawer-item h3 { font-size: 23px !important; }
+html body .find-meta,
+html body .status-pill,
+html body .find-info p,
+html body .drawer-item small,
+html body .drawer-stats,
+html body .drawer-item-actions button { font-size: 18px !important; line-height: 1.5; }
+html body .mini-button { font-size: 18px !important; min-height: 44px; }
+html body .empty-finds p,
+html body .drawer-empty,
+html body .drawer-message,
+html body footer span { font-size: 19px !important; line-height: 1.6; }
+html body .drawer-bottom .btn,
+html body .upload-dialog .modal-actions .btn { font-size: 22px !important; min-height: 54px; }
+html body .upload-dialog .section-kicker { font-size: 18px !important; }
+html body .upload-dialog form > p { font-size: 21px !important; line-height: 1.55; }
+html body .upload-dialog .photo-zone strong { font-size: 22px !important; line-height: 1.4; }
+html body .upload-dialog .photo-zone small { font-size: 18px !important; line-height: 1.45; }
+html body .upload-dialog .field,
+html body .upload-dialog .field > span { font-size: 19px !important; line-height: 1.4; }
+html body .upload-dialog .field input,
+html body .upload-dialog .field select { font-size: 21px !important; min-height: 56px; }
+html body .upload-dialog .form-error,
+html body .toast { font-size: 19px !important; line-height: 1.45; }
+@media (max-width: 720px) {
+  html body .art-card strong { font-size: 19px !important; }
+  html body .art-card small { font-size: 24px !important; }
+  html body .announcement { font-size: 16px !important; }
+  html body .language-switch button { font-size: 15px !important; min-width: 29px; min-height: 32px; }
+  html body .section-kicker,
+  html body .step-number { font-size: 17px !important; }
+  html body .hero-lead { font-size: 26px !important; }
+  html body .hero-buttons .btn,
+  html body .step-card .text-link,
+  html body .finds-heading .btn { font-size: 18px !important; }
+  html body .ticker div { font-size: 17px !important; }
+  html body .filter { font-size: 18px !important; }
+  html body .upload-dialog .field input,
+  html body .upload-dialog .field select { font-size: 20px !important; }
+  html body .upload-dialog .field > span { font-size: 18px !important; }
+}
+
+/* ===== WAITING PAGE (2026-11-20) ===== */
+.waiting-page[hidden]{display:none!important}
+body.show-waiting-page main > :not(#waitingPage){display:none!important}
+body.show-waiting-page #waitingPage{display:block!important}
+.waiting-page{background:#fff9ef;min-height:80vh;padding:34px max(6%,calc((100vw - 1150px)/2)) 100px}
+.waiting-back{background:#fffdf7;border:2px solid #9f806b;border-radius:28px;padding:12px 22px;color:#4a3227;font-size:20px;font-weight:700}
+.waiting-intro{text-align:center;margin:35px auto 44px}
+.waiting-intro h1{font-family:"Cafe24Ssurround",sans-serif;font-size:clamp(35px,5vw,65px);line-height:1.25;margin:0 0 20px}
+.waiting-intro p{font-size:clamp(20px,2vw,27px);line-height:1.6;margin:0;color:#745c4c}
+.waiting-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px;margin:0 auto 42px}
+.waiting-tab{border:2px solid #9c7e6c;border-radius:24px;background:#fffefa;min-height:94px;padding:16px 12px;display:flex;justify-content:center;align-items:center;gap:14px;color:#4a3227;font-family:"ParkDaHyun",sans-serif;font-size:clamp(20px,2vw,28px);font-weight:700;box-shadow:4px 5px 0 #6c4c3520;transition:transform .15s}
+.waiting-tab:nth-child(1){background:#f8d5e0}.waiting-tab:nth-child(2){background:#d8edf6}.waiting-tab:nth-child(3){background:#e0ebc8}
+.waiting-tab.active{border:3px solid #4a3227;transform:translateY(-3px);box-shadow:4px 7px 0 #6c4c3530}
+.waiting-tab b{display:inline-grid;place-items:center;min-width:39px;height:39px;border-radius:50%;background:#fffefa;border:1.5px solid #aa8b75;font-size:23px;font-family:"DM Sans",sans-serif}
+.waiting-list-title{font-family:"Cafe24Ssurround",sans-serif;font-size:clamp(27px,3vw,40px);margin:0 0 25px}
+.waiting-items{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px}
+.waiting-item-card{border:2px solid #d8c1ae;border-radius:22px;background:#fffefa;padding:15px;box-shadow:4px 5px 0 #6c4c351a}
+.waiting-item-photo{width:100%;aspect-ratio:1;background:#f9dce5;border-radius:15px;overflow:hidden;display:grid;place-items:center}
+.waiting-item-photo img{width:100%;height:100%;object-fit:cover}
+.waiting-item-photo span{font-size:60px;color:#c99aac}
+.waiting-item-price{font-size:25px;font-weight:700;margin:16px 2px}
+.waiting-item-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.waiting-item-actions button{border:1.5px solid #9f806b;border-radius:14px;padding:13px 7px;background:#fff4d9;font-family:"ParkDaHyun",sans-serif;font-size:19px;font-weight:700;min-height:54px}
+.waiting-item-actions button:last-child{background:#e4eccd}
+.waiting-empty{grid-column:1/-1;text-align:center;padding:75px 15px;background:#fffdf7;border:2px dashed #d8c1ae;border-radius:20px;font-size:22px}
+@media(max-width:720px){.waiting-page{padding:22px 5% 70px}.waiting-intro{margin:32px auto}.waiting-tabs{gap:8px;margin-bottom:32px}.waiting-tab{min-height:100px;flex-direction:column;gap:7px;font-size:19px;padding:12px 4px;border-radius:17px}.waiting-tab b{min-width:35px;height:35px;font-size:19px}.waiting-items{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.waiting-item-card{padding:9px;border-radius:15px}.waiting-item-price{font-size:21px;margin:12px 2px}.waiting-item-actions{grid-template-columns:1fr;gap:7px}.waiting-item-actions button{font-size:18px;min-height:45px}.waiting-list-title{font-size:29px}.waiting-intro p{font-size:20px}}
+
+
+/* 2026-11-20 — UNIFIED CENTERED DIALOG */
+.wait-dialog{width:min(820px,calc(100% - 24px));max-height:92dvh;overflow:auto;border:2px solid #b89882;border-radius:26px;background:#fff9ef;color:#50372c;padding:25px clamp(15px,4vw,38px) 35px;box-shadow:10px 12px 0 #4a322725;position:fixed;margin:auto;}
+.wait-dialog::backdrop{background:#30201899;}
+.wait-dialog-top{display:flex;justify-content:flex-end;}
+.wait-dialog>h2{text-align:center;font-family:'Cafe24Ssurround',sans-serif;font-size:clamp(29px,4.5vw,43px);margin:4px 0 13px;line-height:1.2;}
+.wait-dialog-desc{text-align:center;font-size:clamp(17px,2.5vw,22px);line-height:1.5;color:#846b5d;margin:0 auto 25px;}
+.wait-dialog-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:27px;}
+.wait-dialog-tab{border:1.5px solid #cbb3a1;border-radius:17px;background:#fffefa;color:#54392d;min-height:87px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:7px;padding:12px 5px;font-size:clamp(15px,2vw,19px);font-weight:700;}
+.wait-dialog-tab.active{background:#f7d5e1;border-color:#ad857b;}
+.wait-dialog-tab b{font-size:20px;background:#fff8e9;border-radius:50%;min-width:34px;height:34px;display:grid;place-items:center;}
+.wait-dialog-list-title{font-family:'Cafe24Ssurround',sans-serif;font-size:clamp(20px,3vw,27px);margin:0 0 18px;}
+.wait-dialog-items{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:17px;}
+.wait-item-card{min-width:0;padding:13px;border-radius:20px;background:#f8dce6;}
+.wait-item-card.blue{background:#d8eaf3;}
+.wait-item-photo{aspect-ratio:1.12;background:#fffdf8;border-radius:15px;overflow:hidden;display:grid;place-items:center;}
+.wait-item-photo img{width:100%;height:100%;object-fit:contain;display:block;}
+.wait-no-photo{font-size:55px;color:#cbb5a5;}
+.wait-item-price{display:block;font-size:clamp(20px,3vw,27px);margin:12px 3px;}
+.wait-item-actions{display:grid;gap:9px;}
+.wait-item-actions button{border:0;border-radius:13px;min-height:49px;background:#fffdf8;color:#53382c;font-size:clamp(16px,2.2vw,19px);font-weight:700;padding:10px;}
+.wait-item-actions button:hover{background:#ffe17b;}
+.wait-empty{grid-column:1/-1;text-align:center;font-size:20px;padding:45px 10px;color:#8d7566;}
+@media(max-width:600px){.wait-dialog{padding:17px 13px 25px;border-radius:20px;max-height:94dvh}.wait-dialog-tabs{gap:6px}.wait-dialog-tab{font-size:14px;min-height:82px}.wait-dialog-items{gap:9px}.wait-item-card{padding:8px;border-radius:13px}.wait-item-actions button{font-size:15px;min-height:43px}.wait-item-price{font-size:19px}}
+
+/* ==========================================
+   WAITING POPUP — CENTER MODAL
+========================================== */
+
+.wait-modal {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  width: min(94vw, 850px);
+  max-width: 850px;
+  max-height: 88dvh;
+  padding: 0;
+  border: none;
+  border-radius: 26px;
+  background: #fff9f0;
+  color: #50372e;
+  box-shadow: 0 18px 60px rgba(65, 42, 28, 0.22);
+  overflow-y: auto;
+  z-index: 9999;
+}
+
+.wait-modal::backdrop {
+  background: rgba(48, 35, 30, 0.48);
+}
+
+.wait-modal[open] {
+  animation: waitPopup 0.22s ease-out;
+}
+
+@keyframes waitPopup {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.wait-modal-inner {
+  padding: 38px 32px 36px;
+  position: relative;
+}
+
+.wait-modal-close {
+  position: absolute;
+  right: 20px;
+  top: 18px;
+  width: 43px;
+  height: 43px;
+  border: 1.5px solid #a68d7b;
+  border-radius: 50%;
+  background: #fffaf3;
+  color: #50372e;
+  font-size: 27px;
+  cursor: pointer;
+}
+
+.wait-modal-header {
+  text-align: center;
+  padding: 16px 30px 30px;
+}
+
+.wait-modal-header h2 {
+  font-size: clamp(30px, 5vw, 43px);
+  line-height: 1.25;
+  margin: 0 0 18px;
+  font-weight: 800;
+}
+
+.wait-modal-header p {
+  margin: 0;
+  color: #92786c;
+  font-size: clamp(17px, 2.6vw, 22px);
+  line-height: 1.7;
+}
+
+.wait-modal-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 28px;
+}
+
+.wait-tab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 58px;
+  padding: 10px 8px;
+  border: 1.5px solid transparent;
+  border-radius: 20px;
+  background: #f1eee9;
+  color: #847b76;
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.wait-tab.active {
+  background: #f8dce6;
+  color: #50372e;
+  border-color: #dfb9c5;
+}
+
+.wait-tab strong {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 27px;
+  height: 27px;
+  padding: 0 6px;
+  border-radius: 50%;
+  background: #ffffff;
+  color: #50372e;
+  font-size: 15px;
+}
+
+.wait-modal-section-title {
+  font-size: clamp(22px, 3.4vw, 29px);
+  font-weight: 800;
+  margin: 0 0 22px;
+}
+
+.wait-modal-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.wait-product {
+  min-width: 0;
+  padding: 15px;
+  border-radius: 25px;
+}
+
+.wait-product-photo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  background: #fffdfa;
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.wait-product-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.wait-photo-empty {
+  color: #ad9e94;
+  font-size: 40px;
+}
+
+.wait-product-price {
+  font-size: clamp(21px, 3vw, 28px);
+  font-weight: 800;
+  margin: 17px 0 14px;
+}
+
+.wait-product-actions {
+  display: grid;
+  gap: 10px;
+}
+
+.wait-product-actions button {
+  min-height: 52px;
+  padding: 12px 8px;
+  border: none;
+  border-radius: 17px;
+  background: #fffdfa;
+  color: #50372e;
+  font-size: clamp(16px, 2.5vw, 20px);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.wait-product-actions button:hover {
+  background: #ffe5a0;
+}
+
+.wait-modal-empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  font-size: 20px;
+  padding: 60px 15px;
+  color: #92786c;
+}
+
+@media (max-width: 600px) {
+  .wait-modal {
+    width: 94vw;
+    max-height: 86dvh;
+    border-radius: 22px;
+  }
+
+  .wait-modal-inner {
+    padding: 52px 17px 24px;
+  }
+
+  .wait-modal-header {
+    padding: 0 5px 24px;
+  }
+
+  .wait-modal-header h2 {
+    font-size: 29px;
+  }
+
+  .wait-modal-header p {
+    font-size: 17px;
+  }
+
+  .wait-modal-tabs {
+    gap: 6px;
+    margin-bottom: 24px;
+  }
+
+  .wait-tab {
+    min-height: 62px;
+    padding: 8px 4px;
+    flex-direction: column;
+    gap: 4px;
+    border-radius: 15px;
+    font-size: 14px;
+  }
+
+  .wait-tab strong {
+    min-width: 23px;
+    height: 23px;
+    font-size: 13px;
+  }
+
+  .wait-modal-section-title {
+    font-size: 23px;
+  }
+
+  .wait-modal-grid {
+    gap: 10px;
+  }
+
+  .wait-product {
+    padding: 9px;
+    border-radius: 18px;
+  }
+
+  .wait-product-photo {
+    border-radius: 13px;
+  }
+
+  .wait-product-price {
+    font-size: 21px;
+    margin: 12px 0;
+  }
+
+  .wait-product-actions {
+    gap: 7px;
+  }
+
+  .wait-product-actions button {
+    min-height: 47px;
+    padding: 8px 4px;
+    font-size: 15px;
+    border-radius: 12px;
+  }
+}
+/* 修复上传照片后的预览布局 */
+
+.upload-zone,
+.upload-area,
+.photo-upload,
+.upload-box {
+  position: relative;
+  overflow: hidden;
+}
+
+/* 上传后的照片 */
+.upload-zone img,
+.upload-area img,
+.photo-upload img,
+.upload-box img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+/* 预览图片不能把上传区域撑宽 */
+.upload-preview,
+.photo-preview {
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.upload-preview img,
+.photo-preview img {
+  display: block;
+  width: 100%;
+  max-height: 220px;
+  object-fit: contain;
+  margin: 0 auto;
+}
+
+/* ==========================================
+   PHOTO UPLOAD — FINAL FIX
+   上传前显示相机，上传后只显示照片
+========================================== */
+
+/* 上传照片后，彻底隐藏相机和提示文字 */
+html body .upload-dialog #photoPrompt[hidden] {
+  display: none !important;
+}
+
+/* 未上传照片时，隐藏照片预览 */
+html body .upload-dialog #photoPreview[hidden] {
+  display: none !important;
+}
+
+/* 上传后让照片居中，不出现左右两栏 */
+html body .upload-dialog .photo-zone:has(#photoPreview:not([hidden])) {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: fit-content !important;
+  max-width: 100% !important;
+  height: auto !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  margin: 20px auto !important;
+  overflow: hidden !important;
+  background: transparent !important;
+  border: none !important;
+}
+
+/* 照片保持原比例，不拉伸、不变形 */
+html body .upload-dialog #photoPreview:not([hidden]) {
+  display: block !important;
+  width: auto !important;
+  height: auto !important;
+  max-width: 100% !important;
+  max-height: 350px !important;
+  object-fit: contain !important;
+  margin: 0 auto !important;
+}
+
+/* 第二张卡片的小猫图标 */
+.step-cat {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 105px;
+  margin: 12px 0 18px;
+}
+
+.step-cat img {
+  display: block;
+  width: 105px;
+  height: 105px;
+  object-fit: contain;
+}
+/* ==========================================
+   HIDE MY LITTLE FINDS SECTION
+   暂时隐藏「나의 작은 발견」
+========================================== */
+
+#finds,
+#findsSection,
+.finds-section,
+.my-finds-section {
+  display: none !important;
+}
+
+/* ==========================================
+   SIMILAR ITEMS COMPARISON
+   使用网站原来的颜色和字体
+========================================== */
+
+.similar-compare-area[hidden] {
+  display: none !important;
+}
+
+.similar-compare-area {
+  margin: 20px 0;
+}
+
+.similar-notice {
+  padding: 18px;
+  border: 1.5px solid var(--line);
+  border-radius: 18px;
+  background: var(--cream);
+  color: var(--brown);
+  text-align: center;
+}
+
+.similar-notice-icon {
+  font-size: 28px;
+  color: #d7839d;
+  margin-bottom: 8px;
+}
+
+.similar-notice h3 {
+  font-family: "Cafe24Ssurround", sans-serif;
+  font-size: 19px;
+  margin: 0 0 10px;
+}
+
+.similar-notice p {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+  margin: 0 0 20px;
+}
+
+.similar-comparison-heading {
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 14px;
+}
+
+.similar-items-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  max-height: 330px;
+  overflow-y: auto;
+  margin-bottom: 18px;
+}
+
+.similar-item-card {
+  min-width: 0;
+  padding: 10px;
+  background: var(--white);
+  border: 1px solid #dbc7b0;
+  border-radius: 14px;
+}
+
+.similar-item-image {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--pink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.similar-item-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.similar-item-image span {
+  font-size: 36px;
+}
+
+.similar-item-name {
+  margin-top: 9px;
+  font-size: 12px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.similar-item-price {
+  font-size: 12px;
+  margin-top: 5px;
+  color: var(--muted);
+}
+
+.similar-item-status {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 5px 9px;
+  border-radius: 20px;
+  background: var(--pink);
+  font-size: 10px;
+}
+
+.similar-comparison-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.similar-comparison-actions .btn {
+  flex: 1;
+  min-width: 0;
+  padding: 12px 8px;
+  font-size: 11px;
+}
+
+@media (max-width: 420px) {
+  .similar-notice {
+    padding: 12px;
+  }
+
+  .similar-items-grid {
+    gap: 8px;
+  }
+
+  .similar-comparison-actions {
+    flex-direction: column;
+  }
+}
+
+/* ==========================================
+   SIMILAR COMPARISON BUTTON VISIBILITY
+   相似物提醒时隐藏原来的保存按钮
+========================================== */
+
+/* 出现相似物提醒时，隐藏原来的黄色保存按钮 */
+#uploadForm:has(
+  #similarCompareArea:not([hidden])
+) > .modal-actions {
+  display: none !important;
+}
+
+/* 没有提醒时，原来的保存按钮正常显示 */
+#similarCompareArea[hidden] {
+  display: none !important;
+}
+
+/* Purchased collection — independent third step */
+#bowCollection[hidden]{display:none!important}
+#bowCollection{position:fixed;inset:0;z-index:150;display:grid;place-items:center;padding:16px}
+.bow-collection-shade{position:absolute;inset:0;background:#38231e91}
+.bow-collection-window{position:relative;width:min(850px,100%);max-height:92dvh;overflow:auto;background:#fff9ee;border:2px solid #aa8b77;border-radius:28px;padding:clamp(22px,4vw,42px);box-shadow:8px 10px 0 #4a32272b;color:#4a3227}
+.bow-collection-x{position:absolute;top:14px;right:16px;width:38px;height:38px;border:1px solid #aa8b77;border-radius:50%;background:#fffdf6;font-size:26px}
+.bow-collection-heading{text-align:center;margin:15px 0 25px}
+.bow-collection-heading>span{font-size:12px;color:#ac7e86}
+.bow-collection-heading h2{font-size:clamp(28px,4vw,42px);margin:10px 0}
+.bow-collection-heading p{font-size:13px;color:#806f62}
+.bow-collection-summary{display:grid;grid-template-columns:1fr 1fr;gap:13px;margin-bottom:22px}
+.bow-collection-summary>div{background:#f9d2df;border:1.5px solid #b79785;border-radius:20px;padding:19px;display:flex;flex-direction:column;gap:7px;min-width:0}
+.bow-collection-summary>div+div{background:#ffe9a3}
+.bow-collection-summary small{font-size:12px;color:#755f52}
+.bow-collection-summary strong{font-size:clamp(24px,4vw,36px);overflow-wrap:anywhere}
+.bow-collection-categories{display:grid;grid-template-columns:repeat(3,1fr);gap:13px}
+.bow-collection-categories button{background:#dce9c3;border:1.5px solid #b79785;border-radius:20px;padding:20px 8px;display:flex;align-items:center;flex-direction:column;gap:8px;color:#4a3227;box-shadow:3px 4px 0 #4a32271a;transition:transform .2s}
+.bow-collection-categories button:nth-child(3n+2){background:#f9d2df}
+.bow-collection-categories button:nth-child(3n){background:#fff0c0}
+.bow-collection-categories button:hover{transform:translateY(-3px)}
+.bow-collection-categories button>span{font-size:43px}
+.bow-collection-categories strong{font-size:15px;text-align:center}
+.bow-collection-categories small{font-size:12px;color:#725c50}
+.bow-collection-back{background:none;border:0;text-decoration:underline;font-size:13px;color:#4a3227}
+.bow-collection-products{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.bow-collection-products article{display:flex;flex-direction:column;gap:9px;padding:11px;background:#fffefa;border:1px solid #d9c6b3;border-radius:15px;min-width:0}
+.bow-collection-photo{aspect-ratio:1;background:#f7dce3;border-radius:10px;overflow:hidden;display:grid;place-items:center}
+.bow-collection-photo img{width:100%;height:100%;object-fit:cover}
+.bow-collection-photo>span{font-size:55px}
+.bow-collection-products strong{font-size:14px;overflow-wrap:anywhere}
+.bow-collection-products small{font-size:12px;color:#806f62}
+.bow-collection-empty{text-align:center;padding:50px 10px;color:#806f62}
+@media(max-width:600px){.bow-collection-window{padding:25px 16px}.bow-collection-summary{gap:8px}.bow-collection-summary>div{padding:14px 10px}.bow-collection-categories,.bow-collection-products{grid-template-columns:repeat(2,1fr);gap:10px}}
+
+/* Purchased collection: user-supplied category PNG icons */
+.bow-collection-categories .bow-category-art{display:block;width:78px;height:78px;object-fit:contain;flex-shrink:0}
+#bowCollectionBody>h3 .bow-category-art{width:44px;height:44px;object-fit:contain;vertical-align:middle;margin-right:8px}
+.bow-collection-photo .bow-category-art{width:68%;height:68%;object-fit:contain}
+@media(max-width:600px){.bow-collection-categories .bow-category-art{width:66px;height:66px}}
