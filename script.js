@@ -2031,6 +2031,8 @@ function closeWaitModal() {
 
   document.body.classList.remove("locked");
 
+  // Discard the unfinished draft, including the preview and comparison.
+  resetUploadForm();
   hideOverlayIfUnused();
 }
 
@@ -2420,7 +2422,8 @@ function openUpload() {
     return;
   }
 
-  formError("");
+  // Every new opening starts with a blank, unsaved item.
+  resetUploadForm();
 
   if (typeof closeDrawer === "function") {
     closeDrawer();
@@ -2903,6 +2906,13 @@ function resetUploadForm() {
 
   clearPhotoPreview();
   formError("");
+  similarSaveApproved = false;
+
+  const comparison = $("similarCompareArea");
+  if (comparison) {
+    comparison.hidden = true;
+    comparison.innerHTML = "";
+  }
 }
 
 /* ==========================================
@@ -2956,9 +2966,8 @@ function initializeUploadEvents() {
     dialog.addEventListener(
       "close",
       () => {
-        document.body.classList.remove(
-          "locked"
-        );
+        document.body.classList.remove("locked");
+        resetUploadForm();
       }
     );
   }
