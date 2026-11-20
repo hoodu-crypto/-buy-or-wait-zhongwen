@@ -161,7 +161,7 @@ const I18N = {
     boughtStat: "已购买",
     drawerUpload: "＋ 再收藏一件",
     drawerClose: "继续逛逛",
-    uploadKicker: "✿ 新发现的心动小物",
+    uploadKicker: "新发现的心动小物",
     uploadTitle: "好想拥有！",
     uploadDesc: "拍下来、收藏起来，再给自己一点时间考虑。",
     photoPrompt: "拍照或上传照片",

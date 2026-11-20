@@ -1654,3 +1654,41 @@ html[lang="zh-CN"] .step-card h3 {font-weight: 800 !important;}
 
 /* Keep legacy data-rendering nodes available without displaying a fourth section. */
 .finds-section[hidden] { display: none !important; }
+
+/* =========================================
+   中文圆润字体：GenSenRounded2TC
+   路径对应项目根目录 chinese 文件夹
+========================================= */
+@font-face {
+  font-family: "GenSenRoundedChinese";
+  src: url("./chinese/GenSenRounded2TC-R.otf") format("opentype");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "GenSenRoundedChinese";
+  src: url("./chinese/GenSenRounded2TC-M.otf") format("opentype");
+  font-style: normal;
+  font-weight: 500 600;
+  font-display: swap;
+}
+@font-face {
+  font-family: "GenSenRoundedChinese";
+  src: url("./chinese/GenSenRounded2TC-B.otf") format("opentype");
+  font-style: normal;
+  font-weight: 700 900;
+  font-display: swap;
+}
+/* 中文时覆盖旧的 PingFang SC 规则及标题的 Fredoka 规则 */
+html[lang="zh-CN"] body,
+html[lang="zh-CN"] body *:not(svg):not(path):not(use) {
+  font-family: "GenSenRoundedChinese", "PingFang SC", sans-serif !important;
+}
+/* 品牌英文标志仍保留原本字体 */
+html[lang="zh-CN"] .logo,
+html[lang="zh-CN"] .logo span,
+html[lang="zh-CN"] .hero h1,
+html[lang="zh-CN"] .hero h1 * {
+  font-family: "Fredoka", sans-serif !important;
+}
