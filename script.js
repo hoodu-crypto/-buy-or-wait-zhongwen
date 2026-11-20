@@ -4355,9 +4355,24 @@ if (document.readyState === "loading") {
   let lastSpent = null;
   let isVisible = false;
   const messages = {
-    ko: { title:"이번 달 예산이 얼마 남지 않았어요!", description:"이번 달 구매 금액이 예산의 90%에 도달했어요. 다음 구매는 조금 더 생각해 볼까요?", spent:"이번 달 구매 금액", left:"남은 예산", over:"예산 초과", limit:"월 소비 한도", confirm:"확인했어요", estimate:"현재 환율 기준 추정 금액" },
-    zh: { title:"这个月的预算快用完了！", description:"本月已购金额已达到预算的90%，下次购买前再考虑一下吧。", spent:"本月已购金额", left:"剩余预算", over:"超出预算", limit:"每月固定限额", confirm:"知道了", estimate:"按当前汇率估算" },
-    en: { title:"You're getting close to your monthly budget!", description:"Your purchases have reached 90% of your monthly budget. Take a moment before your next purchase.", spent:"Spent this month", left:"Budget remaining", over:"Over budget", limit:"Fixed monthly limit", confirm:"Got it", estimate:"Estimated at current exchange rates" }
+    ko: {
+      near: {title:"이번 달 예산이 얼마 남지 않았어요!", description:"이번 달 구매 금액이 예산의 90% 이상이에요. 다음 구매는 조금 더 생각해 볼까요?"},
+      reached: {title:"이번 달 예산을 모두 사용했어요!", description:"이번 달 구매 금액이 예산의 100%에 도달했어요. 다음 구매는 조금 더 생각해 볼까요?"},
+      exceeded: {title:"이번 달 예산을 초과했어요!", description:"이번 달 구매 금액이 예산의 100%를 넘었어요. 다음 구매는 조금 더 생각해 볼까요?"},
+      spent:"이번 달 구매 금액", left:"남은 예산", over:"예산 초과", limit:"월 소비 한도", confirm:"확인했어요", estimate:"현재 환율 기준 추정 금액"
+    },
+    zh: {
+      near: {title:"这个月的预算快用完了！", description:"本月已购金额已达到预算的90%以上，下次购买前再考虑一下吧。"},
+      reached: {title:"本月预算已经用完了！", description:"本月已购金额已达到预算的100%，下次购买前再考虑一下吧。"},
+      exceeded: {title:"本月消费已经超出预算！", description:"本月已购金额已超过预算的100%，下次购买前再考虑一下吧。"},
+      spent:"本月已购金额", left:"剩余预算", over:"超出预算", limit:"每月固定限额", confirm:"知道了", estimate:"按当前汇率估算"
+    },
+    en: {
+      near: {title:"You're getting close to your monthly budget!", description:"Your purchases have reached at least 90% of your monthly budget. Take a moment before your next purchase."},
+      reached: {title:"You've reached your monthly budget!", description:"Your purchases have reached 100% of your monthly budget. Take a moment before your next purchase."},
+      exceeded: {title:"You've exceeded your monthly budget!", description:"Your purchases have passed 100% of your monthly budget. Take a moment before your next purchase."},
+      spent:"Spent this month", left:"Budget remaining", over:"Over budget", limit:"Fixed monthly limit", confirm:"Got it", estimate:"Estimated at current exchange rates"
+    }
   };
   const lang = () => ["ko","zh","en"].includes(currentLang) ? currentLang : "ko";
   const currency = () => lang()==="zh" ? "CNY" : lang()==="en" ? "USD" : "KRW";
@@ -4440,8 +4455,10 @@ if (document.readyState === "loading") {
     if (!isVisible || lastSpent===null) return;
     const word=messages[lang()];
     const remaining=MONTHLY_LIMIT_KRW-lastSpent;
-    document.getElementById("bowBudgetTitle").textContent=word.title;
-    document.getElementById("bowBudgetDescription").textContent=word.description;
+    // One reminder dialog, but its wording must match the actual spending level.
+    const level=lastSpent>MONTHLY_LIMIT_KRW?"exceeded":lastSpent>=MONTHLY_LIMIT_KRW?"reached":"near";
+    document.getElementById("bowBudgetTitle").textContent=word[level].title;
+    document.getElementById("bowBudgetDescription").textContent=word[level].description;
     document.getElementById("bowBudgetSpentLabel").textContent=word.spent;
     document.getElementById("bowBudgetRemainingLabel").textContent=remaining>=0?word.left:word.over;
     document.getElementById("bowBudgetLimitLabel").textContent=word.limit;
