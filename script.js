@@ -4350,8 +4350,9 @@ if (document.readyState === "loading") {
   const MONTHLY_LIMIT_KRW = 300000;
   const REMINDER_THRESHOLD_KRW = 270000;
   const timezone = "Asia/Seoul";
-  let shownThisVisit = false;
+  const shownLanguagesThisVisit = new Set();
   let checking = false;
+  let recheckAfterCurrent = false;
   let lastSpent = null;
   let isVisible = false;
   const messages = {
@@ -4470,7 +4471,8 @@ if (document.readyState === "loading") {
     document.getElementById("bowBudgetFill").style.width=Math.min(100,lastSpent/MONTHLY_LIMIT_KRW*100)+"%";
   }
   async function checkBudgetOnEntry() {
-    if (shownThisVisit || checking || !Array.isArray(finds)) return;
+    if (shownLanguagesThisVisit.has(lang()) || !Array.isArray(finds)) return;
+    if (checking) { recheckAfterCurrent = true; return; }
     checking=true;
     try {
       if (!bowExchangeRates && !bowExchangeFailed) await loadBowExchangeRates();
@@ -4478,13 +4480,19 @@ if (document.readyState === "loading") {
       if (total===null || total<REMINDER_THRESHOLD_KRW) return;
       // Rates must be available before displaying converted currencies.
       if (!bowExchangeRates && (lang()!=="ko" || finds.some(item => (item.status==="bought" || item.bought===true) && monthKey(item.purchased_at || item.updated_at || item.created_at)===monthKey(new Date()) && String(item.currency||"KRW").toUpperCase()!=="KRW"))) return;
-      shownThisVisit=true;
+      shownLanguagesThisVisit.add(lang());
       lastSpent=total;
       ensureModal();
       isVisible=true;
       document.getElementById("bowBudgetOverlay").hidden=false;
       refreshModal();
-    } finally {checking=false;}
+    } finally {
+      checking=false;
+      if (recheckAfterCurrent) {
+        recheckAfterCurrent=false;
+        void checkBudgetOnEntry();
+      }
+    }
   }
   const originalLoader=loadCloudFinds;
   loadCloudFinds=async function(...args) {
@@ -4496,7 +4504,10 @@ if (document.readyState === "loading") {
   const originalApplyLanguage=applyLanguage;
   applyLanguage=function(...args) {
     const result=originalApplyLanguage(...args);
-    refreshModal();
+    // Every newly selected language gets its own reminder once per visit.
+    // The current modal is updated immediately if it is already open.
+    if (isVisible) refreshModal();
+    else void checkBudgetOnEntry();
     return result;
   };
   // Offline fallback: if cloud login is unavailable, check local backup once
@@ -4504,7 +4515,7 @@ if (document.readyState === "loading") {
   const originalStart=startApplication;
   startApplication=async function(...args) {
     const result=await originalStart(...args);
-    if (!shownThisVisit) void checkBudgetOnEntry();
+    if (!shownLanguagesThisVisit.has(lang())) void checkBudgetOnEntry();
     return result;
   };
 })();
