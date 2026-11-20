@@ -4385,7 +4385,7 @@ if (document.readyState === "loading") {
   const format = amountKRW => {
     const target=currency();
     const rate=target==="KRW"?1:bowExchangeRates?.[target];
-    if (!rate) return "—";
+    if (!rate) return new Intl.NumberFormat("ko-KR", {style:"currency",currency:"KRW",maximumFractionDigits:0}).format(amountKRW);
     return new Intl.NumberFormat(lang()==="ko"?"ko-KR":lang()==="zh"?"zh-CN":"en-US",{
       style:"currency",currency:target,maximumFractionDigits:target==="KRW"?0:2,minimumFractionDigits:target==="KRW"?0:2
     }).format(amountKRW*rate);
@@ -4467,7 +4467,7 @@ if (document.readyState === "loading") {
     document.getElementById("bowBudgetRemaining").textContent=format(Math.abs(remaining));
     document.getElementById("bowBudgetLimit").textContent=format(MONTHLY_LIMIT_KRW);
     document.getElementById("bowBudgetConfirm").textContent=word.confirm;
-    document.getElementById("bowBudgetRateNote").textContent=word.estimate;
+    document.getElementById("bowBudgetRateNote").textContent=bowExchangeRates ? word.estimate : (lang()==="zh" ? "汇率暂不可用，金额暂以韩元显示" : lang()==="en" ? "Exchange rate unavailable; amounts shown in KRW" : "환율을 불러올 수 없어 원화로 표시해요");
     document.getElementById("bowBudgetFill").style.width=Math.min(100,lastSpent/MONTHLY_LIMIT_KRW*100)+"%";
   }
   async function checkBudgetOnEntry() {
@@ -4478,8 +4478,6 @@ if (document.readyState === "loading") {
       if (!bowExchangeRates && !bowExchangeFailed) await loadBowExchangeRates();
       const total=monthlySpent();
       if (total===null || total<REMINDER_THRESHOLD_KRW) return;
-      // Rates must be available before displaying converted currencies.
-      if (!bowExchangeRates && (lang()!=="ko" || finds.some(item => (item.status==="bought" || item.bought===true) && monthKey(item.purchased_at || item.updated_at || item.created_at)===monthKey(new Date()) && String(item.currency||"KRW").toUpperCase()!=="KRW"))) return;
       shownLanguagesThisVisit.add(lang());
       lastSpent=total;
       ensureModal();
@@ -4506,10 +4504,28 @@ if (document.readyState === "loading") {
     const result=originalApplyLanguage(...args);
     // Every newly selected language gets its own reminder once per visit.
     // The current modal is updated immediately if it is already open.
-    if (isVisible) refreshModal();
-    else void checkBudgetOnEntry();
+    if (isVisible) {
+      refreshModal();
+      shownLanguagesThisVisit.add(lang());
+    } else {
+      void checkBudgetOnEntry();
+    }
     return result;
   };
+  // Explicit language-button listener: reliable even when the page uses
+  // another language-switching handler or the main UI rerenders.
+  document.addEventListener("click", event => {
+    const button=event.target.closest?.(".language-switch button[data-lang]");
+    if (!button) return;
+    const selected=button.dataset.lang;
+    if (!["ko","zh","en"].includes(selected)) return;
+    // The app's language click handler runs in the same event dispatch.
+    // Check after it has updated currentLang and the visible UI.
+    Promise.resolve().then(() => {
+      if (currentLang!==selected) applyLanguage(selected);
+      if (!shownLanguagesThisVisit.has(selected)) void checkBudgetOnEntry();
+    });
+  });
   // Offline fallback: if cloud login is unavailable, check local backup once
   // initialization finishes. Do not interrupt an in-progress cloud fetch.
   const originalStart=startApplication;
