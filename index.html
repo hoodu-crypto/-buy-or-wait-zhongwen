@@ -16,7 +16,7 @@
     rel="stylesheet"
   />
 
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css?v=20261120-fontfix1" />
 
   <!-- Load Supabase library first -->
   <script
@@ -25,7 +25,7 @@
   ></script>
 
   <!-- Main website functionality -->
-  <script src="script.js" defer></script>
+  <script src="script.js?v=20261120b" defer></script>
 </head>
 
 <body>
@@ -225,7 +225,6 @@
           <span class="bear-ear left"></span>
           <span class="bear-ear right"></span>
           <span class="bear-face">• ᴥ •</span>
-          <span class="bear-bow">୨୧</span>
         </div>
 
         <div class="art-card">
@@ -241,7 +240,7 @@
     <!-- PINK TICKER -->
     <div class="ticker">
       <div data-i18n="ticker">
-        ♡ SPOT IT ✳ SAVE IT ♡ THINK TWICE ✳ LOVE WHAT YOU HAVE
+        ♡ SPOT IT ♡ SAVE IT ♡ THINK TWICE ♡ LOVE WHAT YOU HAVE
       </div>
     </div>
 
@@ -262,10 +261,6 @@
           <span>Decide later.</span>
         </h2>
 
-        <p data-i18n="stepsDesc">
-          Three small steps between “so cute!” and “I bought it!”
-        </p>
-
       </div>
 
       <div class="step-grid">
@@ -280,7 +275,7 @@
             01 / SPOT IT
           </span>
 
-          <div class="step-emoji">📸</div>
+          <div class="step-emoji step-camera"><img src="assets/camera_icon_transparent.png" alt="" /></div>
 
           <h3 data-i18n="step1">
             Catch the crush
@@ -288,7 +283,7 @@
 
           <button
             type="button"
-            class="text-link"
+            class="text-link step-action-button"
             id="stepUpload"
             data-i18n="stepButton1"
           >
@@ -315,7 +310,7 @@
 
           <button
             type="button"
-            class="text-link"
+            class="text-link step-action-button"
             id="stepWishlist"
             data-i18n="stepButton2"
           >
@@ -341,7 +336,7 @@
           </h3>
 
           <a
-            class="text-link"
+            class="text-link step-action-button"
             href="#finds"
             data-i18n="stepButton3"
           >
