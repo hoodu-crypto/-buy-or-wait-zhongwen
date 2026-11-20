@@ -320,16 +320,8 @@ function t(key) {
 }
 
 function getSavedLanguage() {
-  try {
-    const saved = localStorage.getItem(LANGUAGE_KEY);
-
-    if (["ko", "zh", "en"].includes(saved)) {
-      return saved;
-    }
-  } catch (error) {
-    console.warn("Language storage unavailable:", error);
-  }
-
+  // The website always starts in Korean.
+  // Language buttons still switch between Korean, Chinese, and English.
   return "ko";
 }
 
@@ -492,32 +484,53 @@ function normalizeItem(row) {
   };
 }
 
+// Exchange rates are fetched once per session. Prices are stored in their original
+// currencies; changing the UI language never changes the stored amount.
+let bowExchangeRates = null;
+let bowExchangeLoading = false;
+let bowExchangeFailed = false;
+async function loadBowExchangeRates() {
+  if (bowExchangeRates || bowExchangeLoading) return;
+  bowExchangeLoading = true;
+  try {
+    const response = await fetch("https://open.er-api.com/v6/latest/KRW");
+    if (!response.ok) throw new Error("Exchange-rate service unavailable");
+    const data = await response.json();
+    if (data.result !== "success" || !data.rates?.KRW || !data.rates?.CNY || !data.rates?.USD) {
+      throw new Error("Invalid exchange-rate response");
+    }
+    bowExchangeRates = data.rates;
+    bowExchangeFailed = false;
+  } catch (error) {
+    bowExchangeFailed = true;
+    console.warn("Unable to load exchange rates:", error);
+  } finally {
+    bowExchangeLoading = false;
+    // Re-render the visible prices after the asynchronous exchange-rate lookup.
+    if (typeof renderWaitModal === "function") renderWaitModal();
+    if (typeof renderFinds === "function") renderFinds();
+    if (typeof renderDrawerItems === "function") renderDrawerItems();
+  }
+}
 function formatPrice(item) {
-  const price = safeNumber(item.price);
-
-  if (price <= 0) {
-    return t("noPrice");
+  const amount = safeNumber(item.price);
+  if (amount <= 0) return t("noPrice");
+  const source = String(item.currency || "KRW").toUpperCase();
+  const target = currentLang === "zh" ? "CNY" : currentLang === "en" ? "USD" : "KRW";
+  let converted = amount;
+  if (source !== target) {
+    if (!bowExchangeRates?.[source] || !bowExchangeRates?.[target]) {
+      if (!bowExchangeLoading && !bowExchangeFailed) void loadBowExchangeRates();
+      return currentLang === "zh" ? "汇率加载中…" : currentLang === "en" ? "Loading rate…" : "환율 불러오는 중…";
+    }
+    converted = amount / bowExchangeRates[source] * bowExchangeRates[target];
   }
-
-  const currency = item.currency || "KRW";
-
-  if (currency === "KRW") {
-    return "₩ " + Math.round(price).toLocaleString();
-  }
-
-  if (currency === "USD") {
-    return "$ " + price.toLocaleString();
-  }
-
-  if (currency === "CNY") {
-    return "¥ " + price.toLocaleString();
-  }
-
-  return (
-    price.toLocaleString() +
-    " " +
-    currency
-  );
+  const locale = currentLang === "zh" ? "zh-CN" : currentLang === "en" ? "en-US" : "ko-KR";
+  return new Intl.NumberFormat(locale, {
+    style: "currency", currency: target,
+    minimumFractionDigits: target === "KRW" ? 0 : 2,
+    maximumFractionDigits: target === "KRW" ? 0 : 2
+  }).format(converted);
 }
 
 function getCategoryLabel(category) {
@@ -1289,7 +1302,7 @@ function getProductText(key) {
       waiting: "기다리는 중",
       thinking: "다시 생각 중",
       bought: "이미 샀어요",
-      rethink: "다시 생각하기",
+      rethink: "안 살래요",
       waitAgain: "다시 기다리기",
       boughtAction: "이미 샀어요",
       delete: "삭제"
@@ -1299,7 +1312,7 @@ function getProductText(key) {
       waiting: "等待中",
       thinking: "重新考虑中",
       bought: "已经买了",
-      rethink: "重新考虑",
+      rethink: "不买了",
       waitAgain: "重新等待",
       boughtAction: "已经买了",
       delete: "删除"
@@ -1309,7 +1322,7 @@ function getProductText(key) {
       waiting: "Waiting",
       thinking: "Thinking again",
       bought: "Already bought",
-      rethink: "Think again",
+      rethink: "Not buying",
       waitAgain: "Wait again",
       boughtAction: "Already bought",
       delete: "Delete"
@@ -1774,7 +1787,7 @@ const WAIT_MODAL_I18N = {
     waitingTitle: "기다리고 있는 귀여운 것들",
     thinkingTitle: "다시 생각하고 있는 것들",
     boughtTitle: "이미 내 것이 된 귀여운 것들",
-    rethink: "다시 생각하기",
+    rethink: "안 살래요",
     waitAgain: "다시 기다리기",
     boughtAction: "이미 샀어요",
     empty: "아직 물건이 없어요.",
@@ -1792,7 +1805,7 @@ const WAIT_MODAL_I18N = {
     waitingTitle: "正在等待的可爱小物",
     thinkingTitle: "正在重新考虑的小物",
     boughtTitle: "已经拥有的可爱小物",
-    rethink: "重新考虑",
+    rethink: "不买了",
     waitAgain: "重新等待",
     boughtAction: "已经买了",
     empty: "这里暂时没有物品。",
@@ -1810,7 +1823,7 @@ const WAIT_MODAL_I18N = {
     waitingTitle: "Cute things worth waiting for",
     thinkingTitle: "Things I'm thinking about",
     boughtTitle: "Cute things I already own",
-    rethink: "Think again",
+    rethink: "Not buying",
     waitAgain: "Wait again",
     boughtAction: "Already bought",
     empty: "Nothing here yet.",
@@ -1935,15 +1948,8 @@ function createWaitModal() {
 function openWaitModal(tab = "waiting") {
   const modal = createWaitModal();
 
-  const allowedTabs = [
-    "waiting",
-    "thinking",
-    "bought"
-  ];
-
-  waitModalTab = allowedTabs.includes(tab)
-    ? tab
-    : "waiting";
+  const allowedTabs = ["waiting", "bought"];
+  waitModalTab = allowedTabs.includes(tab) ? tab : "waiting";
 
   modal.hidden = false;
   modal.classList.add("open");
@@ -2011,37 +2017,15 @@ function renderWaitActions(item) {
   const status = getItemStatus(item);
   const id = escapeHTML(item.id);
 
-  if (status === "waiting") {
+  if (status === "waiting" || status === "thinking") {
     return `
       <button
         type="button"
         class="wait-action wait-action-thinking"
-        data-wait-action="thinking"
+        data-wait-action="delete"
         data-wait-id="${id}"
       >
         ${escapeHTML(waitText("rethink"))}
-      </button>
-
-      <button
-        type="button"
-        class="wait-action wait-action-bought"
-        data-wait-action="bought"
-        data-wait-id="${id}"
-      >
-        ${escapeHTML(waitText("boughtAction"))}
-      </button>
-    `;
-  }
-
-  if (status === "thinking") {
-    return `
-      <button
-        type="button"
-        class="wait-action wait-action-waiting"
-        data-wait-action="waiting"
-        data-wait-id="${id}"
-      >
-        ${escapeHTML(waitText("waitAgain"))}
       </button>
 
       <button
@@ -2135,11 +2119,7 @@ function renderWaitModal() {
 
   const counts = getStatusCounts();
 
-  const statuses = [
-    "waiting",
-    "thinking",
-    "bought"
-  ];
+  const statuses = ["waiting", "bought"];
 
   tabs.innerHTML = statuses
     .map((status) => {
@@ -2158,7 +2138,7 @@ function renderWaitModal() {
           </span>
 
           <strong>
-            ${counts[status]}
+            ${status === "waiting" ? counts.waiting + counts.thinking : counts.bought}
           </strong>
         </button>
       `;
@@ -2175,8 +2155,9 @@ function renderWaitModal() {
     sectionTitles[waitModalTab]
   );
 
-  const visibleItems =
-    getItemsByStatus(waitModalTab);
+  const visibleItems = waitModalTab === "waiting"
+    ? finds.filter(item => ["waiting", "thinking"].includes(getItemStatus(item)))
+    : getItemsByStatus("bought");
 
   if (!visibleItems.length) {
     grid.innerHTML = `
@@ -2202,11 +2183,7 @@ async function updateWaitItem(itemId, nextStatus) {
     return;
   }
 
-  const allowedStatuses = [
-    "waiting",
-    "thinking",
-    "bought"
-  ];
+  const allowedStatuses = ["waiting", "bought", "delete"];
 
   if (!allowedStatuses.includes(nextStatus)) {
     console.error(
@@ -2235,10 +2212,11 @@ async function updateWaitItem(itemId, nextStatus) {
   }
 
   try {
-    await updateCloudItemStatus(
-      itemId,
-      nextStatus
-    );
+    if (nextStatus === "delete") {
+      await deleteCloudItem(itemId);
+    } else {
+      await updateCloudItemStatus(itemId, nextStatus);
+    }
 
     // 状态更新成功后，商品会自动从当前分类
     // 移动到对应的 waiting / thinking / bought 分类。
