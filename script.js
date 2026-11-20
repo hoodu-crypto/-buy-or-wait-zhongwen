@@ -482,6 +482,8 @@ function normalizeItem(row) {
 
     bought: status === "bought",
 
+    purchased_at: row.purchased_at || null,
+    updated_at: row.updated_at || null,
     created_at:
       row.created_at ||
       new Date().toISOString()
@@ -1223,16 +1225,35 @@ async function updateCloudItemStatus(itemId, status) {
     );
   }
 
-  const { data, error } = await supabaseClient
+  const previousItem = finds.find(entry => String(entry.id) === String(itemId));
+  const statusUpdate = { status };
+  if (status === "bought" && previousItem?.status !== "bought") {
+    statusUpdate.purchased_at = new Date().toISOString();
+  } else if (status !== "bought") {
+    statusUpdate.purchased_at = null;
+  }
+
+  let result = await supabaseClient
     .from(TABLE)
-    .update({
-      status
-    })
+    .update(statusUpdate)
     .eq("id", itemId)
     .eq("user_id", currentUser.id)
     .select()
     .single();
 
+  // Older databases without purchased_at continue working. For accurate
+  // purchase-month accounting across devices, apply the included SQL migration.
+  if (result.error && /purchased_at/i.test(result.error.message || "")) {
+    console.warn("purchased_at column missing; apply monthly_budget_migration.sql");
+    result = await supabaseClient
+      .from(TABLE)
+      .update({ status })
+      .eq("id", itemId)
+      .eq("user_id", currentUser.id)
+      .select()
+      .single();
+  }
+  const { data, error } = result;
   if (error) {
     console.error(
       "Item status update failed:",
@@ -4317,4 +4338,156 @@ if (document.readyState === "loading") {
   } else {
     init();
   }
+})();
+
+
+/* ==========================================================
+   MONTHLY BUDGET REMINDER — fixed ₩300,000, reminder at ₩270,000
+   All calculations use KRW and actual purchased month (Asia/Seoul).
+   No changes to existing collection totals or purchase workflows.
+========================================================== */
+(() => {
+  const MONTHLY_LIMIT_KRW = 300000;
+  const REMINDER_THRESHOLD_KRW = 270000;
+  const timezone = "Asia/Seoul";
+  let shownThisVisit = false;
+  let checking = false;
+  let lastSpent = null;
+  let isVisible = false;
+  const messages = {
+    ko: { title:"이번 달 예산이 얼마 남지 않았어요!", description:"이번 달 구매 금액이 예산의 90%에 도달했어요. 다음 구매는 조금 더 생각해 볼까요?", spent:"이번 달 구매 금액", left:"남은 예산", over:"예산 초과", limit:"월 소비 한도", confirm:"확인했어요", estimate:"현재 환율 기준 추정 금액" },
+    zh: { title:"这个月的预算快用完了！", description:"本月已购金额已达到预算的90%，下次购买前再考虑一下吧。", spent:"本月已购金额", left:"剩余预算", over:"超出预算", limit:"每月固定限额", confirm:"知道了", estimate:"按当前汇率估算" },
+    en: { title:"You're getting close to your monthly budget!", description:"Your purchases have reached 90% of your monthly budget. Take a moment before your next purchase.", spent:"Spent this month", left:"Budget remaining", over:"Over budget", limit:"Fixed monthly limit", confirm:"Got it", estimate:"Estimated at current exchange rates" }
+  };
+  const lang = () => ["ko","zh","en"].includes(currentLang) ? currentLang : "ko";
+  const currency = () => lang()==="zh" ? "CNY" : lang()==="en" ? "USD" : "KRW";
+  const monthKey = date => {
+    const parsed = new Date(date);
+    if (Number.isNaN(parsed.getTime())) return null;
+    return new Intl.DateTimeFormat("en-CA", {timeZone:timezone,year:"numeric",month:"2-digit"}).format(parsed);
+  };
+  const format = amountKRW => {
+    const target=currency();
+    const rate=target==="KRW"?1:bowExchangeRates?.[target];
+    if (!rate) return "—";
+    return new Intl.NumberFormat(lang()==="ko"?"ko-KR":lang()==="zh"?"zh-CN":"en-US",{
+      style:"currency",currency:target,maximumFractionDigits:target==="KRW"?0:2,minimumFractionDigits:target==="KRW"?0:2
+    }).format(amountKRW*rate);
+  };
+  const amountInKRW = item => {
+    const amount=Number(item.price);
+    if (!Number.isFinite(amount) || amount<0) return null;
+    const from=String(item.currency||"KRW").toUpperCase();
+    if (from==="KRW") return amount;
+    const rate=bowExchangeRates?.[from];
+    return rate ? amount/rate : null;
+  };
+  function monthlySpent() {
+    const currentMonth=monthKey(new Date());
+    let total=0;
+    for (const item of finds) {
+      if (item.status!=="bought" && item.bought!==true) continue;
+      // For legacy items lacking purchased_at, use updated_at if available,
+      // otherwise created_at. The migration backfills purchased_at for old rows.
+      const purchased=item.purchased_at || item.updated_at || item.created_at;
+      if (monthKey(purchased)!==currentMonth) continue;
+      const value=amountInKRW(item);
+      if (value===null) return null; // Never show a misleading warning from partial totals.
+      total+=value;
+    }
+    return total;
+  }
+  function ensureModal() {
+    if (document.getElementById("bowBudgetOverlay")) return;
+    const style=document.createElement("style");
+    style.textContent=`
+      #bowBudgetOverlay[hidden]{display:none!important}
+      #bowBudgetOverlay{position:fixed;inset:0;z-index:2147483000;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(55,43,39,.45);box-sizing:border-box}
+      #bowBudgetDialog{width:min(100%,390px);max-height:calc(100dvh - 40px);overflow:auto;background:#fff7e9;color:#684a3f;border:1px solid #ecd7c4;border-radius:25px;box-shadow:0 20px 65px rgba(50,34,30,.2);padding:27px 24px 24px;box-sizing:border-box;text-align:center;font-family:inherit}
+      #bowBudgetDialog *{box-sizing:border-box}
+      .bow-budget-icon{width:62px;height:62px;margin:0 auto 13px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:#f8dfe8;color:#b76582;font-size:28px}
+      #bowBudgetTitle{font-size:20px;font-weight:800;line-height:1.45;margin:0 0 10px}
+      #bowBudgetDescription{font-size:14px;line-height:1.7;margin:0 0 20px;color:#8a7163}
+      .bow-budget-progress{height:11px;border-radius:99px;background:#e8d7c8;overflow:hidden;margin:0 0 15px}
+      #bowBudgetFill{height:100%;background:#dba77d;border-radius:99px;transition:width .25s}
+      .bow-budget-rows{padding:13px 15px;background:#fff;border-radius:13px;margin-bottom:18px}
+      .bow-budget-row{display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:13px;line-height:2.2;text-align:left}
+      .bow-budget-row strong{font-size:14px;text-align:right;white-space:nowrap}
+      #bowBudgetConfirm{display:block;width:100%;border:0;border-radius:12px;background:#eabacb;color:#613e4b;font:inherit;font-size:15px;font-weight:750;cursor:pointer;padding:13px}
+      #bowBudgetConfirm:hover{background:#e4a9be}
+      #bowBudgetRateNote{display:block;font-size:11px;color:#a18c80;margin-top:11px}
+    `;
+    document.head.appendChild(style);
+    const overlay=document.createElement("div");
+    overlay.id="bowBudgetOverlay";
+    overlay.hidden=true;
+    overlay.innerHTML=`<section id="bowBudgetDialog" role="dialog" aria-modal="true" aria-labelledby="bowBudgetTitle" aria-describedby="bowBudgetDescription">
+      <div class="bow-budget-icon" aria-hidden="true">♡</div>
+      <h2 id="bowBudgetTitle"></h2><p id="bowBudgetDescription"></p>
+      <div class="bow-budget-progress"><div id="bowBudgetFill"></div></div>
+      <div class="bow-budget-rows">
+        <div class="bow-budget-row"><span id="bowBudgetSpentLabel"></span><strong id="bowBudgetSpent"></strong></div>
+        <div class="bow-budget-row"><span id="bowBudgetRemainingLabel"></span><strong id="bowBudgetRemaining"></strong></div>
+        <div class="bow-budget-row"><span id="bowBudgetLimitLabel"></span><strong id="bowBudgetLimit"></strong></div>
+      </div>
+      <button type="button" id="bowBudgetConfirm"></button><small id="bowBudgetRateNote"></small>
+    </section>`;
+    document.body.appendChild(overlay);
+    document.getElementById("bowBudgetConfirm").addEventListener("click",()=>{overlay.hidden=true;isVisible=false;});
+    document.addEventListener("keydown",e=>{if(e.key==="Escape" && !overlay.hidden){overlay.hidden=true;isVisible=false;}});
+  }
+  function refreshModal() {
+    if (!isVisible || lastSpent===null) return;
+    const word=messages[lang()];
+    const remaining=MONTHLY_LIMIT_KRW-lastSpent;
+    document.getElementById("bowBudgetTitle").textContent=word.title;
+    document.getElementById("bowBudgetDescription").textContent=word.description;
+    document.getElementById("bowBudgetSpentLabel").textContent=word.spent;
+    document.getElementById("bowBudgetRemainingLabel").textContent=remaining>=0?word.left:word.over;
+    document.getElementById("bowBudgetLimitLabel").textContent=word.limit;
+    document.getElementById("bowBudgetSpent").textContent=format(lastSpent);
+    document.getElementById("bowBudgetRemaining").textContent=format(Math.abs(remaining));
+    document.getElementById("bowBudgetLimit").textContent=format(MONTHLY_LIMIT_KRW);
+    document.getElementById("bowBudgetConfirm").textContent=word.confirm;
+    document.getElementById("bowBudgetRateNote").textContent=word.estimate;
+    document.getElementById("bowBudgetFill").style.width=Math.min(100,lastSpent/MONTHLY_LIMIT_KRW*100)+"%";
+  }
+  async function checkBudgetOnEntry() {
+    if (shownThisVisit || checking || !Array.isArray(finds)) return;
+    checking=true;
+    try {
+      if (!bowExchangeRates && !bowExchangeFailed) await loadBowExchangeRates();
+      const total=monthlySpent();
+      if (total===null || total<REMINDER_THRESHOLD_KRW) return;
+      // Rates must be available before displaying converted currencies.
+      if (!bowExchangeRates && (lang()!=="ko" || finds.some(item => (item.status==="bought" || item.bought===true) && monthKey(item.purchased_at || item.updated_at || item.created_at)===monthKey(new Date()) && String(item.currency||"KRW").toUpperCase()!=="KRW"))) return;
+      shownThisVisit=true;
+      lastSpent=total;
+      ensureModal();
+      isVisible=true;
+      document.getElementById("bowBudgetOverlay").hidden=false;
+      refreshModal();
+    } finally {checking=false;}
+  }
+  const originalLoader=loadCloudFinds;
+  loadCloudFinds=async function(...args) {
+    const result=await originalLoader(...args);
+    // Wait until cloud records have arrived before checking the entry reminder.
+    void checkBudgetOnEntry();
+    return result;
+  };
+  const originalApplyLanguage=applyLanguage;
+  applyLanguage=function(...args) {
+    const result=originalApplyLanguage(...args);
+    refreshModal();
+    return result;
+  };
+  // Offline fallback: if cloud login is unavailable, check local backup once
+  // initialization finishes. Do not interrupt an in-progress cloud fetch.
+  const originalStart=startApplication;
+  startApplication=async function(...args) {
+    const result=await originalStart(...args);
+    if (!shownThisVisit) void checkBudgetOnEntry();
+    return result;
+  };
 })();
