@@ -7,7 +7,7 @@
   ];
   const words = {
     ko: {title:'내가 구매한 귀여운 소품들',intro:'내가 구매한 귀여운 물건들을 모아 봐요 ♡',count:'구매한 물건',sum:'총 구매 금액',unit:'개',back:'전체 카테고리',empty:'아직 구매한 물건이 없어요.',missing:'가격 미입력',rates:'환율을 불러오는 중…',failed:'환율을 확인할 수 없어 합계 금액을 표시하지 않아요.',note:'현재 환율 기준 추정 금액',view:'구경하기',currency:'KRW',step:'구매한 소품들',stepButton:'구매한 물건 보기 ↗'},
-    zh: {title:'我买过的可爱小物件',intro:'把已经买下的可爱小物整理在这里 ♡',count:'已购买物品',sum:'累计购买金额',unit:'件',back:'全部分类',empty:'还没有购买的物品哦。',missing:'未填写价格',rates:'正在获取汇率…',failed:'汇率暂不可用，无法计算合计金额。',note:'按当前汇率估算',view:'查看物品',currency:'CNY',step:'已购小物件',stepButton:'查看已购小物 ↗'},
+    zh: {title:'我买过的可爱小物件',intro:'这里收藏着我已经买过的可爱小物 ♡',count:'已购小物件',sum:'已购小物总金额',unit:'件',back:'全部分类',empty:'还没有购买的物品哦。',missing:'未填写价格',rates:'正在获取汇率…',failed:'汇率暂不可用，无法计算合计金额。',note:'按当前汇率估算',view:'查看物品',currency:'CNY',step:'已购小物件',stepButton:'查看已购小物 ↗'},
     en: {title:'Cute Things I Bought',intro:'All the cute things you have bought ♡',count:'Purchased items',sum:'Total spent',unit:'items',back:'All categories',empty:'No purchased items yet.',missing:'No price',rates:'Loading exchange rates…',failed:'Exchange rates unavailable; total is hidden.',note:'Estimated using current exchange rates',view:'View items',currency:'USD',step:'Things I Bought',stepButton:'VIEW PURCHASES ↗'}
   };
   let rates=null, failed=false, selected=null;
