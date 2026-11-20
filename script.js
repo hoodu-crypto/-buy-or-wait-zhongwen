@@ -30,7 +30,7 @@ let photoPreviewURL = "";
 
 const I18N = {
   ko: {
-    announcement: "✿ 구매하기 전에 잠깐 생각해 봐요 ✿",
+    announcement: "구매하기 전에 잠깐 생각해 봐요",
     navHome: "홈",
     navHow: "이용 방법",
     navFinds: "나의 발견",
@@ -72,13 +72,13 @@ const I18N = {
     boughtStat: "이미 샀어요",
     drawerUpload: "＋ 다른 물건 저장하기",
     drawerClose: "계속 둘러보기",
-    uploadKicker: "✿ 새로운 마음에 드는 물건",
+    uploadKicker: "새로운 마음에 드는 물건",
     uploadTitle: "갖고 싶어!",
     uploadDesc: "사진을 찍고 저장한 뒤 잠깐 생각해 보세요.",
     photoPrompt: "사진 촬영 또는 업로드",
     photoLimit: "JPG, PNG, WEBP • 최대 5MB",
-    nameLabel: "어떤 물건이 마음에 들었나요?",
-    priceLabel: "가격 (선택)",
+    nameLabel: "어떤 점이 마음에 들었나요?",
+    priceLabel: "가격",
     categoryLabel: "카테고리",
     noteLabel: "짧은 메모 (선택)",
     save: "♡ 위시리스트에 저장하기",
@@ -119,7 +119,7 @@ const I18N = {
   },
 
   zh: {
-    announcement: "✿ 买下喜欢的东西之前，先想一想 ✿",
+    announcement: "买下喜欢的东西之前，先想一想",
     navHome: "首页",
     navHow: "使用方法",
     navFinds: "我的发现",
@@ -166,8 +166,8 @@ const I18N = {
     uploadDesc: "拍下来、收藏起来，再给自己一点时间考虑。",
     photoPrompt: "拍照或上传照片",
     photoLimit: "JPG、PNG、WEBP • 最大 5MB",
-    nameLabel: "你看中了什么？",
-    priceLabel: "价格（选填）",
+    nameLabel: "你喜欢它的哪一点？",
+    priceLabel: "价格",
     categoryLabel: "物品分类",
     noteLabel: "备注（选填）",
     save: "♡ 保存到心愿清单",
@@ -208,7 +208,7 @@ const I18N = {
   },
 
   en: {
-    announcement: "✿ A little pause before a little purchase ✿",
+    announcement: "A little pause before a little purchase",
     navHome: "HOME",
     navHow: "HOW IT WORKS",
     navFinds: "MY FINDS",
@@ -250,13 +250,13 @@ const I18N = {
     boughtStat: "Already mine",
     drawerUpload: "＋ SAVE ANOTHER FIND",
     drawerClose: "CONTINUE EXPLORING",
-    uploadKicker: "✿ A NEW LITTLE CRUSH",
+    uploadKicker: "A NEW LITTLE CRUSH",
     uploadTitle: "I WANT IT!",
     uploadDesc: "Snap it, save it, and give yourself a moment to think.",
     photoPrompt: "Tap to take a photo or upload one",
     photoLimit: "JPG, PNG or WEBP • max 5 MB",
-    nameLabel: "WHAT CAUGHT YOUR EYE?",
-    priceLabel: "PRICE (OPTIONAL)",
+    nameLabel: "WHAT DO YOU LIKE ABOUT IT?",
+    priceLabel: "PRICE",
     categoryLabel: "CATEGORY",
     noteLabel: "A LITTLE NOTE (OPTIONAL)",
     save: "♡ SAVE TO WISHLIST",
@@ -441,6 +441,11 @@ function normalizeStatus(status) {
 
 function normalizeItem(row) {
   const status = normalizeStatus(row.status);
+  const rawNote = String(row.note || "");
+  const satisfactionMatch = rawNote.match(/\n?\[\[bow-satisfaction:(love|okay|regret)\]\]\s*$/);
+  const note = satisfactionMatch
+    ? rawNote.replace(/\n?\[\[bow-satisfaction:(love|okay|regret)\]\]\s*$/, "").trimEnd()
+    : rawNote;
 
   return {
     id: row.id,
@@ -461,9 +466,8 @@ function normalizeItem(row) {
       row.currency ||
       "KRW",
 
-    note:
-      row.note ||
-      "",
+    note,
+    satisfaction: satisfactionMatch?.[1] || "",
 
     photo_path:
       row.photo_path ||
@@ -1173,6 +1177,33 @@ async function insertCloudItem(itemData) {
    UPDATE ITEM STATUS
 ========================================== */
 
+async function updateCloudItemSatisfaction(itemId, satisfaction) {
+  if (!["love", "okay", "regret"].includes(satisfaction)) {
+    throw new Error(`Invalid purchase satisfaction: ${satisfaction}`);
+  }
+  if (!await ensureCloudConnection()) {
+    throw new Error("Cloud connection is unavailable.");
+  }
+  const item = finds.find((entry) => String(entry.id) === String(itemId));
+  if (!item) return;
+  const note = [item.note, `[[bow-satisfaction:${satisfaction}]]`]
+    .filter(Boolean)
+    .join("\n");
+  const { data, error } = await supabaseClient
+    .from(TABLE)
+    .update({ note })
+    .eq("id", itemId)
+    .eq("user_id", currentUser.id)
+    .select()
+    .single();
+  if (error) {
+    console.error("Purchase satisfaction update failed:", error);
+    throw error;
+  }
+  await loadCloudFinds();
+  return normalizeItem(data);
+}
+
 async function updateCloudItemStatus(itemId, status) {
   const allowedStatuses = [
     "waiting",
@@ -1790,6 +1821,11 @@ const WAIT_MODAL_I18N = {
     rethink: "안 살래요",
     waitAgain: "다시 기다리기",
     boughtAction: "이미 샀어요",
+    satisfactionAction: "구매 만족도 기록하기",
+    satisfactionSaved: "기록한 만족도",
+    satisfactionLove: "짱 좋아!",
+    satisfactionOkay: "그냥 그래",
+    satisfactionRegret: "괜히 샀어",
     empty: "아직 물건이 없어요.",
     close: "닫기",
     updating: "변경 중..."
@@ -1808,6 +1844,11 @@ const WAIT_MODAL_I18N = {
     rethink: "不买了",
     waitAgain: "重新等待",
     boughtAction: "已经买了",
+    satisfactionAction: "记录购买满意度",
+    satisfactionSaved: "已记录",
+    satisfactionLove: "太喜欢了",
+    satisfactionOkay: "一般般",
+    satisfactionRegret: "有点后悔",
     empty: "这里暂时没有物品。",
     close: "关闭",
     updating: "正在修改..."
@@ -1826,6 +1867,11 @@ const WAIT_MODAL_I18N = {
     rethink: "Not buying",
     waitAgain: "Wait again",
     boughtAction: "Already bought",
+    satisfactionAction: "Rate my purchase",
+    satisfactionSaved: "Saved",
+    satisfactionLove: "Love it!",
+    satisfactionOkay: "It’s okay.",
+    satisfactionRegret: "Wish I hadn’t bought it.",
     empty: "Nothing here yet.",
     close: "Close",
     updating: "Updating..."
@@ -1834,6 +1880,7 @@ const WAIT_MODAL_I18N = {
 
 let waitModalTab = "waiting";
 let waitModalBusy = false;
+let satisfactionOpenItemId = null;
 
 function waitText(key) {
   return (
@@ -1928,13 +1975,20 @@ function createWaitModal() {
 
     if (actionButton) {
       const itemId = actionButton.dataset.waitId;
-      const nextStatus =
-        actionButton.dataset.waitAction;
+      const nextStatus = actionButton.dataset.waitAction;
 
-      await updateWaitItem(
-        itemId,
-        nextStatus
-      );
+      if (nextStatus === "satisfaction") {
+        satisfactionOpenItemId = satisfactionOpenItemId === String(itemId)
+          ? null
+          : String(itemId);
+        renderWaitModal();
+        return;
+      }
+      if (nextStatus === "set-satisfaction") {
+        await updateWaitSatisfaction(itemId, actionButton.dataset.waitValue);
+        return;
+      }
+      await updateWaitItem(itemId, nextStatus);
     }
   });
 
@@ -2039,15 +2093,28 @@ function renderWaitActions(item) {
     `;
   }
 
+  const currentRating = item.satisfaction
+    ? `<small>${escapeHTML(waitText("satisfactionSaved"))}: ${escapeHTML(waitText(`satisfaction${item.satisfaction[0].toUpperCase()}${item.satisfaction.slice(1)}`))}</small>`
+    : "";
+  const ratingOptions = satisfactionOpenItemId === String(item.id)
+    ? `<div class="wait-satisfaction-options" role="group" aria-label="${escapeHTML(waitText("satisfactionAction"))}">
+        ${["love", "okay", "regret"].map((value) => `
+          <button type="button" class="wait-satisfaction-choice ${item.satisfaction === value ? "selected" : ""}"
+            data-wait-action="set-satisfaction" data-wait-id="${id}" data-wait-value="${value}"
+            aria-pressed="${item.satisfaction === value}">
+            ${escapeHTML(waitText(`satisfaction${value[0].toUpperCase()}${value.slice(1)}`))}
+          </button>
+        `).join("")}
+      </div>`
+    : "";
+
   return `
-    <button
-      type="button"
-      class="wait-action wait-action-waiting"
-      data-wait-action="waiting"
-      data-wait-id="${id}"
-    >
-      ${escapeHTML(waitText("waitAgain"))}
+    <button type="button" class="wait-action wait-action-satisfaction"
+      data-wait-action="satisfaction" data-wait-id="${id}"
+      aria-expanded="${satisfactionOpenItemId === String(item.id)}">
+      ${escapeHTML(waitText("satisfactionAction"))}${currentRating}
     </button>
+    ${ratingOptions}
   `;
 }
 
@@ -2177,6 +2244,24 @@ function renderWaitModal() {
 /* ==========================================
    UPDATE STATUS INSIDE WAIT MODAL
 ========================================== */
+
+async function updateWaitSatisfaction(itemId, satisfaction) {
+  if (waitModalBusy) return;
+  waitModalBusy = true;
+  const modal = $("waitModal");
+  if (modal) modal.classList.add("updating");
+  try {
+    await updateCloudItemSatisfaction(itemId, satisfaction);
+    satisfactionOpenItemId = null;
+    renderWaitModal();
+  } catch (error) {
+    console.error("Purchase satisfaction update failed:", error);
+    notify(`${t("updateError")}: ${error.message}`);
+  } finally {
+    waitModalBusy = false;
+    if (modal) modal.classList.remove("updating");
+  }
+}
 
 async function updateWaitItem(itemId, nextStatus) {
   if (waitModalBusy) {
@@ -2625,6 +2710,16 @@ function getUploadFormValues() {
 
   if (!name) {
     throw new Error(t("needName"));
+  }
+
+  if (priceText === "") {
+    throw new Error(
+      currentLang === "ko"
+        ? "가격을 입력해 주세요."
+        : currentLang === "zh"
+          ? "请填写价格。"
+          : "Please enter a price."
+    );
   }
 
   let price = 0;
@@ -3419,6 +3514,43 @@ function installWaitModalStyles() {
       background: #dcecf5;
     }
 
+    #waitModal .wait-action-satisfaction {
+      flex-basis: 100%;
+      background: #dcecf5;
+    }
+
+    #waitModal .wait-action-satisfaction small {
+      display: block;
+      margin-top: 4px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    #waitModal .wait-satisfaction-options {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 6px;
+      flex: 1 0 100%;
+    }
+
+    #waitModal .wait-satisfaction-choice {
+      min-height: 39px;
+      padding: 7px 10px;
+      border: 1.5px solid #51474a;
+      border-radius: 10px;
+      background: #fffdf8;
+      color: #40363a;
+      font: inherit;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    #waitModal .wait-satisfaction-choice.selected {
+      background: #fce4a3;
+      box-shadow: inset 0 0 0 1px #51474a;
+    }
+
     #waitModal .wait-modal-empty {
       grid-column: 1 / -1;
       padding: 45px 15px;
@@ -3916,72 +4048,13 @@ const SIMILAR_TEXT = {
 
 let similarSaveApproved = false;
 
-function similarWords(value) {
-  const stopWords = new Set([
-    "the", "and", "with", "small", "cute",
-    "tiny", "little", "new", "pink",
-    "white", "black", "blue",
-    "작은", "귀여운", "핑크", "화이트",
-    "블랙", "미니", "예쁜",
-    "可爱", "小", "粉色", "白色", "黑色"
-  ]);
-
-  return String(value || "")
-    .toLowerCase()
-    .replace(/[^\p{L}\p{N}]+/gu, " ")
-    .split(/\s+/)
-    .filter(word =>
-      word.length >= 2 &&
-      !stopWords.has(word)
-    );
-}
-
+// Compare only the six fixed categories; never use names, notes or keywords.
 function findSimilarItems(name, category) {
-  const inputName = String(name || "")
-    .trim()
-    .toLowerCase();
-
-  const inputWords = similarWords(inputName);
-
-  if (!inputName) return [];
-
-  return finds
-    .map(item => {
-      const oldName = String(item.name || "")
-        .trim()
-        .toLowerCase();
-
-      const oldWords = similarWords(oldName);
-
-      const sameCategory =
-        item.category === category;
-
-      const exactName =
-        oldName === inputName;
-
-      const commonWords = inputWords.filter(word =>
-        oldWords.some(oldWord =>
-          oldWord === word ||
-          (word.length >= 3 &&
-           oldWord.includes(word)) ||
-          (oldWord.length >= 3 &&
-           word.includes(oldWord))
-        )
-      );
-
-      let score = 0;
-
-      if (exactName) score += 10;
-
-      score += commonWords.length * 3;
-
-      if (sameCategory) score += 1;
-
-      return { item, score };
-    })
-    .filter(result => result.score >= 3)
-    .sort((a, b) => b.score - a.score)
-    .map(result => result.item);
+  const selectedCategory = String(category || "").trim();
+  if (!selectedCategory) return [];
+  return finds.filter(item =>
+    String(item.category || "").trim() === selectedCategory
+  );
 }
 
 function similarStatusText(item, words) {
