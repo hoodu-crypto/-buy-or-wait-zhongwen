@@ -37,7 +37,7 @@ const I18N = {
     navRoom: "나의 방",
     lead: "너무 귀여워. 갖고 싶어.<br>그런데 <i>정말</i> 필요할까?",
     want: "♡ 갖고 싶어!",
-    wishlist: "위시리스트 보기 ↗",
+    wishlist: "위시리스트 보기",
     ticker: "♡ 발견하기 ♡ 저장하기 ♡ 다시 생각하기 ♡ 가진 것 사랑하기",
     stepsKicker: "작은 사용 안내",
     stepsTitle: "지금은 좋아해도, <span>결정은 나중에.</span>",
@@ -48,9 +48,9 @@ const I18N = {
     step1: "마음에 담기",
     step2: "잠깐 기다리기",
     step3: "결정하기",
-    stepButton1: "물건 추가하기 ↗",
-    stepButton2: "위시리스트 보기 ↗",
-    stepButton3: "나의 발견 보기 ↗",
+    stepButton1: "물건 추가하기",
+    stepButton2: "위시리스트 보기",
+    stepButton3: "나의 발견 보기",
     findsKicker: "♡ 나만의 작은 컬렉션",
     findsTitle: '나의 작은 발견<span class="sparkle">✳</span>',
     findsDesc: "마음에 쏙 들었던 귀여운 것들을 모아 보세요.",
@@ -61,7 +61,7 @@ const I18N = {
     roomKicker: "나만의 작은 공간",
     roomTitle: "좋아하는 것들을 위한<br><i>나만의 공간.</i>",
     roomDesc: "모아 둔 물건들을 작은 3D 방에서 다시 만나 보세요.",
-    roomButton: "나의 방 들어가기 ↗",
+    roomButton: "나의 방 들어가기",
     roomSmall: "3D 방은 다음 단계에서 연결할 예정이에요.",
     footer1: "귀여운 것을 좋아하는 친구를 위해 만들었어요.",
     footer2: "작은 물건, 신중한 선택. © 2026",
@@ -126,7 +126,7 @@ const I18N = {
     navRoom: "我的房间",
     lead: "太可爱了，好想拥有。<br>但是<i>真的</i>需要吗？",
     want: "♡ 好想拥有！",
-    wishlist: "查看心愿清单 ↗",
+    wishlist: "查看心愿清单",
     ticker: "♡ 发现它 ♡ 收藏它 ♡ 再想一想 ♡ 珍惜已拥有的",
     stepsKicker: "使用指南",
     stepsTitle: "现在喜欢，<span>以后再决定。</span>",
@@ -137,9 +137,9 @@ const I18N = {
     step1: "记录心动",
     step2: "再等等",
     step3: "已购小物件",
-    stepButton1: "添加物品 ↗",
-    stepButton2: "查看心愿清单 ↗",
-    stepButton3: "查看已购小物 ↗",
+    stepButton1: "添加物品",
+    stepButton2: "查看心愿清单",
+    stepButton3: "查看已购小物",
     findsKicker: "♡ 我的小物记录",
     findsTitle: '我的心动小物<span class="sparkle">✳</span>',
     findsDesc: "把让你心动的小东西收藏在这里。",
@@ -150,7 +150,7 @@ const I18N = {
     roomKicker: "属于你的小角落",
     roomTitle: "给喜欢的小物<br><i>留一个位置。</i>",
     roomDesc: "把收藏的物品放进可爱的 3D 房间，重新发现自己拥有的东西。",
-    roomButton: "进入我的房间 ↗",
+    roomButton: "进入我的房间",
     roomSmall: "3D 房间将在下一步连接。",
     footer1: "为喜欢可爱小东西的朋友而制作。",
     footer2: "小小物品，认真选择。© 2026",
@@ -215,7 +215,7 @@ const I18N = {
     navRoom: "MY ROOM",
     lead: "It's cute. You love it.<br>But do you <i>really</i> need it?",
     want: "♡ I WANT IT!",
-    wishlist: "VIEW MY WISHLIST ↗",
+    wishlist: "VIEW MY WISHLIST",
     ticker: "♡ SPOT IT ♡ SAVE IT ♡ THINK TWICE ♡ LOVE WHAT YOU HAVE",
     stepsKicker: "A LITTLE GUIDE",
     stepsTitle: "Love it now. <span>Decide later.</span>",
@@ -226,9 +226,9 @@ const I18N = {
     step1: "Catch the crush",
     step2: "Give it a moment",
     step3: "Choose your ending",
-    stepButton1: "ADD A FIND ↗",
-    stepButton2: "SEE MY LIST ↗",
-    stepButton3: "MY LITTLE FINDS ↗",
+    stepButton1: "ADD A FIND",
+    stepButton2: "SEE MY LIST",
+    stepButton3: "MY LITTLE FINDS",
     findsKicker: "♡ YOUR VERY OWN COLLECTION",
     findsTitle: 'My little finds<span class="sparkle">✳</span>',
     findsDesc: 'All the things that made you stop and say “aww!”',
@@ -239,7 +239,7 @@ const I18N = {
     roomKicker: "YOUR LITTLE CORNER",
     roomTitle: "A room for<br><i>everything</i> you love.",
     roomDesc: "Your collected finds will eventually live in a tiny interactive 3D room.",
-    roomButton: "ENTER MY ROOM ↗",
+    roomButton: "ENTER MY ROOM",
     roomSmall: "3D room connection coming in the next step.",
     footer1: "Made for a friend who loves all things cute.",
     footer2: "Little things. Thoughtful choices. © 2026",
@@ -4230,3 +4230,31 @@ if (document.readyState === "loading") {
 }
 
 /* END SIMILAR ITEMS COMPARISON */
+
+
+/* Keep the three main card buttons free of arrow emoji in every language. */
+(function keepStepButtonsArrowFree() {
+  const ids = ["stepUpload", "stepWishlist", "stepDecide"];
+  const clean = (button) => {
+    const before = button.textContent;
+    const after = before.replace(/[↗↖↘↙➡⬈➚➜➝➞➤🔗]\uFE0F?/gu, "").trim();
+    if (before !== after) button.textContent = after;
+  };
+  const init = () => {
+    ids.forEach((id) => {
+      const button = document.getElementById(id);
+      if (!button) return;
+      clean(button);
+      new MutationObserver(() => clean(button)).observe(button, {
+        childList: true,
+        characterData: true,
+        subtree: true
+      });
+    });
+  };
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init, { once: true });
+  } else {
+    init();
+  }
+})();

@@ -16,7 +16,7 @@
     rel="stylesheet"
   />
 
-  <link rel="stylesheet" href="style.css?v=20261120-centered2" />
+  <link rel="stylesheet" href="style.css?v=20261120-arrowfix2" />
 
   <!-- Load Supabase library first -->
   <script
@@ -25,16 +25,20 @@
   ></script>
 
   <!-- Main website functionality -->
-  <script src="script.js?v=20261120-centered2" defer></script>
+  <script src="script.js?v=20261120-arrowfix2" defer></script>
   <script src="collection.js?v=20261120-purchased2" defer></script>
+
+<style>
+  /* 隐藏顶部添加按钮和心愿清单数量按钮 */
+  .header-actions .icon-button,
+  .header-actions .wishlist-trigger {
+    display: none !important;
+  }
+</style>
+
 </head>
 
 <body>
-
-  <!-- ANNOUNCEMENT -->
-  <div class="announcement" data-i18n="announcement">
-    ✿ A little pause before a little purchase ✿
-  </div>
 
   <!-- HEADER -->
   <header class="site-header">
@@ -51,19 +55,6 @@
       <a href="#how" data-i18n="navHow">
         HOW IT WORKS
       </a>
-
-      <a href="#finds" data-i18n="navFinds">
-        MY FINDS
-      </a>
-
-      <button
-        type="button"
-        class="nav-link"
-        id="roomNav"
-        data-i18n="navRoom"
-      >
-        MY ROOM
-      </button>
     </nav>
 
     <div class="header-actions">
@@ -149,18 +140,6 @@
     <a href="#how" data-i18n="navHow">
       HOW IT WORKS
     </a>
-
-    <a href="#finds" data-i18n="navFinds">
-      MY FINDS
-    </a>
-
-    <button
-      type="button"
-      id="roomMobile"
-      data-i18n="navRoom"
-    >
-      MY ROOM
-    </button>
   </nav>
 
   <main>
@@ -200,7 +179,7 @@
             id="heroWishlist"
             data-i18n="wishlist"
           >
-            VIEW MY WISHLIST ↗
+            VIEW MY WISHLIST
           </button>
 
         </div>
@@ -250,13 +229,6 @@
 
       <div class="section-head">
 
-        <span
-          class="section-kicker"
-          data-i18n="stepsKicker"
-        >
-          A LITTLE GUIDE
-        </span>
-
         <h2 data-i18n-html="stepsTitle">
           Love it now.
           <span>Decide later.</span>
@@ -288,7 +260,7 @@
             id="stepUpload"
             data-i18n="stepButton1"
           >
-            ADD A FIND ↗
+            ADD A FIND
           </button>
 
         </article>
@@ -317,7 +289,7 @@
             id="stepWishlist"
             data-i18n="stepButton2"
           >
-            SEE MY LIST ↗
+            SEE MY LIST
           </button>
 
         </article>
@@ -344,7 +316,7 @@
             class="text-link step-action-button"
             data-i18n="stepButton3"
           >
-            MY LITTLE FINDS ↗
+            MY LITTLE FINDS
           </button>
 
         </article>
@@ -354,7 +326,7 @@
     </section>
 
     <!-- MY FINDS -->
-    <section class="finds-section" id="finds">
+    <section class="finds-section" id="finds" hidden aria-hidden="true">
 
       <div class="finds-heading">
 
@@ -433,86 +405,7 @@
 
     </section>
 
-    <!-- MY ROOM -->
-    <section class="room-section">
-
-      <div class="room-illustration">
-
-        <div class="room-wall">
-
-          <span class="wall-flower">✿</span>
-
-          <div class="room-shelf">
-            <span>🧸</span>
-            <span>🎀</span>
-            <span>🌼</span>
-          </div>
-
-          <div class="room-drawers">
-            <div>●</div>
-            <div>●</div>
-            <div>●</div>
-          </div>
-
-        </div>
-
-      </div>
-
-      <div class="room-copy">
-
-        <span
-          class="section-kicker"
-          data-i18n="roomKicker"
-        >
-          YOUR LITTLE CORNER
-        </span>
-
-        <h2 data-i18n-html="roomTitle">
-          A room for<br>
-          <i>everything</i> you love.
-        </h2>
-
-        <p data-i18n="roomDesc">
-          Your collected finds will eventually live in a tiny
-          interactive 3D room. Open the drawers and rediscover
-          what you already have.
-        </p>
-
-        <button
-          type="button"
-          class="btn btn-yellow"
-          id="roomButton"
-          data-i18n="roomButton"
-        >
-          ENTER MY ROOM ↗
-        </button>
-
-        <small data-i18n="roomSmall">
-          3D room connection coming in the next step.
-        </small>
-
-      </div>
-
-    </section>
-
   </main>
-
-  <!-- FOOTER -->
-  <footer>
-
-    <a class="footer-logo" href="#home">
-      BUY OR WAIT? ♡
-    </a>
-
-    <span data-i18n="footer1">
-      Made for a friend who loves all things cute.
-    </span>
-
-    <span data-i18n="footer2">
-      Little things. Thoughtful choices. © 2026
-    </span>
-
-  </footer>
 
   <!-- OVERLAY -->
   <div
