@@ -2753,7 +2753,7 @@ function getUploadFormValues() {
     price,
     category,
     note,
-    currency: "KRW"
+    currency: currentLang === "zh" ? "CNY" : currentLang === "en" ? "USD" : "KRW"
   };
 }
 
@@ -4094,7 +4094,7 @@ function renderSimilarComparison(matches) {
   const newItem = {
     name,
     price,
-    currency: "KRW"
+    currency: currentLang === "zh" ? "CNY" : currentLang === "en" ? "USD" : "KRW"
   };
 
   const card = (item, isNew = false) => {
