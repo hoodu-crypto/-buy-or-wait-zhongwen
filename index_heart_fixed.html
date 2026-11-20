@@ -1,0 +1,840 @@
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#fff3d5" />
+
+  <title>BUY OR WAIT? — Little things, big feelings</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+  <link
+    href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fredoka:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  />
+
+  <link rel="stylesheet" href="style.css?v=20261120-fontfix1" />
+
+  <!-- Load Supabase library first -->
+  <script
+    src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"
+    defer
+  ></script>
+
+  <!-- Main website functionality -->
+  <script src="script.js?v=20261120b" defer></script>
+</head>
+
+<body>
+
+  <!-- ANNOUNCEMENT -->
+  <div class="announcement" data-i18n="announcement">
+    ✿ A little pause before a little purchase ✿
+  </div>
+
+  <!-- HEADER -->
+  <header class="site-header">
+
+    <a class="logo" href="#home" aria-label="BUY OR WAIT home">
+      BUY <span>OR</span> WAIT<span class="question">?</span>
+    </a>
+
+    <nav class="desktop-nav" aria-label="Main navigation">
+      <a class="active" href="#home" data-i18n="navHome">
+        HOME
+      </a>
+
+      <a href="#how" data-i18n="navHow">
+        HOW IT WORKS
+      </a>
+
+      <a href="#finds" data-i18n="navFinds">
+        MY FINDS
+      </a>
+
+      <button
+        type="button"
+        class="nav-link"
+        id="roomNav"
+        data-i18n="navRoom"
+      >
+        MY ROOM
+      </button>
+    </nav>
+
+    <div class="header-actions">
+
+      <!-- LANGUAGE SWITCH -->
+      <div
+        class="language-switch"
+        role="group"
+        aria-label="Language / 언어 / 语言"
+      >
+        <button
+          type="button"
+          data-lang="ko"
+          aria-pressed="false"
+        >
+          한
+        </button>
+
+        <button
+          type="button"
+          data-lang="zh"
+          aria-pressed="false"
+        >
+          中
+        </button>
+
+        <button
+          type="button"
+          data-lang="en"
+          aria-pressed="true"
+          class="selected"
+        >
+          EN
+        </button>
+      </div>
+
+      <!-- ADD ITEM -->
+      <button
+        type="button"
+        class="icon-button"
+        id="uploadTop"
+        aria-label="Add a new find"
+        title="Add a new find"
+      >
+        ＋
+      </button>
+
+      <!-- WISHLIST -->
+      <button
+        type="button"
+        class="wishlist-trigger"
+        id="openWishlist"
+        aria-label="Open wishlist"
+      >
+        ♡ <span id="wishlistCount">0</span>
+      </button>
+
+      <!-- MOBILE MENU -->
+      <button
+        type="button"
+        class="menu-button"
+        id="menuButton"
+        aria-label="Toggle menu"
+        aria-expanded="false"
+      >
+        ☰
+      </button>
+
+    </div>
+  </header>
+
+  <!-- MOBILE NAVIGATION -->
+  <nav
+    class="mobile-nav"
+    id="mobileNav"
+    aria-label="Mobile navigation"
+    hidden
+  >
+    <a href="#home" data-i18n="navHome">
+      HOME
+    </a>
+
+    <a href="#how" data-i18n="navHow">
+      HOW IT WORKS
+    </a>
+
+    <a href="#finds" data-i18n="navFinds">
+      MY FINDS
+    </a>
+
+    <button
+      type="button"
+      id="roomMobile"
+      data-i18n="navRoom"
+    >
+      MY ROOM
+    </button>
+  </nav>
+
+  <main>
+
+    <!-- HERO -->
+    <section class="hero" id="home">
+
+      <div class="hero-copy">
+
+        <h1>
+          BUY <em>OR</em><br>
+          <span>WAIT?</span>
+        </h1>
+
+        <p
+          class="hero-lead"
+          data-i18n-html="lead"
+        >
+          It's cute. You love it.<br>
+          But do you <i>really</i> need it?
+        </p>
+
+        <div class="hero-buttons">
+
+          <button
+            type="button"
+            class="btn btn-yellow"
+            id="heroUpload"
+            data-i18n="want"
+          >
+            ♡ I WANT IT!
+          </button>
+
+          <button
+            type="button"
+            class="btn btn-outline"
+            id="heroWishlist"
+            data-i18n="wishlist"
+          >
+            VIEW MY WISHLIST ↗
+          </button>
+
+        </div>
+      </div>
+
+      <!-- HERO ILLUSTRATION -->
+      <div
+        class="hero-art"
+        aria-label="Decorative illustration of cute shopping finds"
+      >
+
+        <div class="hero-blob"></div>
+
+        <div class="art-bag">
+          <span class="bag-handle"></span>
+          <span class="bag-heart">♥</span>
+          <span class="bag-label">
+            little<br>finds
+          </span>
+        </div>
+
+        <div class="art-bear">
+          <span class="bear-ear left"></span>
+          <span class="bear-ear right"></span>
+          <span class="bear-face">• ᴥ •</span>
+        </div>
+
+        <div class="art-card">
+          <span>♡</span>
+          <strong>SO CUTE!</strong>
+          <small>but wait...</small>
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- PINK TICKER -->
+    <div class="ticker">
+      <div data-i18n="ticker">
+        ♡ SPOT IT ♡ SAVE IT ♡ THINK TWICE ♡ LOVE WHAT YOU HAVE
+      </div>
+    </div>
+
+    <!-- HOW IT WORKS -->
+    <section class="steps-section" id="how">
+
+      <div class="section-head">
+
+        <span
+          class="section-kicker"
+          data-i18n="stepsKicker"
+        >
+          A LITTLE GUIDE
+        </span>
+
+        <h2 data-i18n-html="stepsTitle">
+          Love it now.
+          <span>Decide later.</span>
+        </h2>
+
+      </div>
+
+      <div class="step-grid">
+
+        <!-- STEP 1 -->
+        <article class="step-card pink">
+
+          <span
+            class="step-number"
+            data-i18n="stepNumber1"
+          >
+            01 / SPOT IT
+          </span>
+
+          <div class="step-emoji step-camera"><img src="assets/camera_icon_transparent.png" alt="" /></div>
+
+          <h3 data-i18n="step1">
+            Catch the crush
+          </h3>
+
+          <button
+            type="button"
+            class="text-link step-action-button"
+            id="stepUpload"
+            data-i18n="stepButton1"
+          >
+            ADD A FIND ↗
+          </button>
+
+        </article>
+
+        <!-- STEP 2 -->
+        <article class="step-card blue">
+
+          <span
+            class="step-number"
+            data-i18n="stepNumber2"
+          >
+            02 / PAUSE IT
+          </span>
+
+          <div class="step-emoji">💭</div>
+
+          <h3 data-i18n="step2">
+            Give it a moment
+          </h3>
+
+          <button
+            type="button"
+            class="text-link step-action-button"
+            id="stepWishlist"
+            data-i18n="stepButton2"
+          >
+            SEE MY LIST ↗
+          </button>
+
+        </article>
+
+        <!-- STEP 3 -->
+        <article class="step-card green">
+
+          <span
+            class="step-number"
+            data-i18n="stepNumber3"
+          >
+            03 / KEEP IT
+          </span>
+
+          <div class="step-emoji">🎀</div>
+
+          <h3 data-i18n="step3">
+            Choose your ending
+          </h3>
+
+          <a
+            class="text-link step-action-button"
+            href="#finds"
+            data-i18n="stepButton3"
+          >
+            MY LITTLE FINDS ↗
+          </a>
+
+        </article>
+
+      </div>
+
+    </section>
+
+    <!-- MY FINDS -->
+    <section class="finds-section" id="finds">
+
+      <div class="finds-heading">
+
+        <div>
+
+          <span
+            class="section-kicker"
+            data-i18n="findsKicker"
+          >
+            ♡ YOUR VERY OWN COLLECTION
+          </span>
+
+          <h2 data-i18n-html="findsTitle">
+            My little finds
+            <span class="sparkle">✳</span>
+          </h2>
+
+          <p data-i18n="findsDesc">
+            All the things that made you stop and say “aww!”
+          </p>
+
+        </div>
+
+        <button
+          type="button"
+          class="btn btn-outline small"
+          id="findsUpload"
+          data-i18n="add"
+        >
+          ＋ ADD A FIND
+        </button>
+
+      </div>
+
+      <!-- FILTER BUTTONS -->
+      <div
+        class="filter-row"
+        role="group"
+        aria-label="Filter finds"
+      >
+
+        <button
+          type="button"
+          class="filter active"
+          data-filter="all"
+          data-i18n="all"
+        >
+          ALL FINDS
+        </button>
+
+        <button
+          type="button"
+          class="filter"
+          data-filter="waiting"
+          data-i18n="waiting"
+        >
+          STILL THINKING
+        </button>
+
+        <button
+          type="button"
+          class="filter"
+          data-filter="bought"
+          data-i18n="bought"
+        >
+          ALREADY MINE
+        </button>
+
+      </div>
+
+      <!-- SAVED ITEMS -->
+      <div
+        class="finds-grid"
+        id="findsGrid"
+      ></div>
+
+    </section>
+
+    <!-- MY ROOM -->
+    <section class="room-section">
+
+      <div class="room-illustration">
+
+        <div class="room-wall">
+
+          <span class="wall-flower">✿</span>
+
+          <div class="room-shelf">
+            <span>🧸</span>
+            <span>🎀</span>
+            <span>🌼</span>
+          </div>
+
+          <div class="room-drawers">
+            <div>●</div>
+            <div>●</div>
+            <div>●</div>
+          </div>
+
+        </div>
+
+      </div>
+
+      <div class="room-copy">
+
+        <span
+          class="section-kicker"
+          data-i18n="roomKicker"
+        >
+          YOUR LITTLE CORNER
+        </span>
+
+        <h2 data-i18n-html="roomTitle">
+          A room for<br>
+          <i>everything</i> you love.
+        </h2>
+
+        <p data-i18n="roomDesc">
+          Your collected finds will eventually live in a tiny
+          interactive 3D room. Open the drawers and rediscover
+          what you already have.
+        </p>
+
+        <button
+          type="button"
+          class="btn btn-yellow"
+          id="roomButton"
+          data-i18n="roomButton"
+        >
+          ENTER MY ROOM ↗
+        </button>
+
+        <small data-i18n="roomSmall">
+          3D room connection coming in the next step.
+        </small>
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer>
+
+    <a class="footer-logo" href="#home">
+      BUY OR WAIT? ♡
+    </a>
+
+    <span data-i18n="footer1">
+      Made for a friend who loves all things cute.
+    </span>
+
+    <span data-i18n="footer2">
+      Little things. Thoughtful choices. © 2026
+    </span>
+
+  </footer>
+
+  <!-- OVERLAY -->
+  <div
+    class="overlay"
+    id="overlay"
+    hidden
+  ></div>
+
+  <!-- WISHLIST DRAWER -->
+  <aside
+    class="drawer"
+    id="wishlistDrawer"
+    aria-hidden="true"
+    aria-labelledby="drawerTitle"
+  >
+
+    <div class="drawer-header">
+
+      <div>
+
+        <span
+          class="section-kicker"
+          data-i18n="drawerKicker"
+        >
+          ♡ THE LITTLE PAUSE
+        </span>
+
+        <h2 id="drawerTitle">
+
+          <span data-i18n="drawerTitle">
+            My Wishlist
+          </span>
+
+          <span id="drawerCount">0</span>
+
+        </h2>
+
+      </div>
+
+      <button
+        type="button"
+        class="close-button"
+        id="closeWishlist"
+        aria-label="Close wishlist"
+      >
+        ×
+      </button>
+
+    </div>
+
+    <div
+      class="drawer-message"
+      data-i18n="drawerMessage"
+    >
+      A photo is enough for today.
+      You don't have to buy it now ♡
+    </div>
+
+    <div
+      class="drawer-items"
+      id="drawerItems"
+    ></div>
+
+    <div class="drawer-bottom">
+
+      <div class="drawer-stats">
+
+        <span>
+          <span data-i18n="waitingStat">
+            Still thinking
+          </span>
+
+          <b id="waitingTotal">0</b>
+        </span>
+
+        <span>
+          <span data-i18n="boughtStat">
+            Already mine
+          </span>
+
+          <b id="boughtTotal">0</b>
+        </span>
+
+      </div>
+
+      <button
+        type="button"
+        class="btn btn-yellow full"
+        id="drawerUpload"
+        data-i18n="drawerUpload"
+      >
+        ＋ SAVE ANOTHER FIND
+      </button>
+
+      <button
+        type="button"
+        class="btn btn-outline full"
+        id="drawerCloseBottom"
+        data-i18n="drawerClose"
+      >
+        CONTINUE EXPLORING
+      </button>
+
+    </div>
+
+  </aside>
+
+  <!-- UPLOAD MODAL -->
+  <dialog
+    class="upload-dialog"
+    id="uploadDialog"
+    aria-labelledby="uploadTitle"
+  >
+
+    <form id="uploadForm">
+
+      <div class="modal-top">
+
+        <div>
+
+          <span
+            class="section-kicker"
+            data-i18n="uploadKicker"
+          >
+            ✿ A NEW LITTLE CRUSH
+          </span>
+
+          <h2
+            id="uploadTitle"
+            data-i18n="uploadTitle"
+          >
+            I WANT IT!
+          </h2>
+
+        </div>
+
+        <button
+          type="button"
+          class="close-button"
+          id="closeUpload"
+          aria-label="Close upload"
+        >
+          ×
+        </button>
+
+      </div>
+
+      <p data-i18n="uploadDesc">
+        Snap it, save it, and give yourself a moment to think.
+      </p>
+
+      <!-- PHOTO UPLOAD -->
+      <label
+        class="photo-zone"
+        for="itemPhoto"
+      >
+
+        <img
+          id="photoPreview"
+          alt="Selected item preview"
+          hidden
+        />
+
+        <span id="photoPrompt">
+
+          📷<br>
+
+          <strong data-i18n="photoPrompt">
+            Tap to take a photo or upload one
+          </strong>
+
+          <small data-i18n="photoLimit">
+            JPG, PNG or WEBP • max 5 MB
+          </small>
+
+        </span>
+
+      </label>
+
+      <input
+        type="file"
+        id="itemPhoto"
+        accept="image/jpeg,image/png,image/webp"
+        hidden
+      />
+
+      <!-- ITEM NAME -->
+      <label class="field">
+
+        <span data-i18n="nameLabel">
+          WHAT CAUGHT YOUR EYE?
+        </span>
+
+        <input
+          id="itemName"
+          type="text"
+          required
+          maxlength="60"
+          placeholder="e.g. Tiny bunny keychain"
+        />
+
+      </label>
+
+      <div class="field-row">
+
+        <!-- PRICE -->
+        <label class="field">
+
+          <span data-i18n="priceLabel">
+            PRICE (OPTIONAL)
+          </span>
+
+          <input
+            id="itemPrice"
+            type="number"
+            min="0"
+            step="0.01"
+            placeholder="0"
+          />
+
+        </label>
+
+        <!-- CATEGORY -->
+        <label class="field">
+
+          <span data-i18n="categoryLabel">
+            CATEGORY
+          </span>
+
+          <select id="itemCategory">
+
+            <option
+              value="Plushies"
+              data-i18n="catPlushies"
+            >
+              Plushies
+            </option>
+
+            <option
+              value="Keychains"
+              data-i18n="catKeychains"
+            >
+              Keychains
+            </option>
+
+            <option
+              value="Stationery"
+              data-i18n="catStationery"
+            >
+              Stationery
+            </option>
+
+            <option
+              value="Accessories"
+              data-i18n="catAccessories"
+            >
+              Accessories
+            </option>
+
+            <option
+              value="Home decor"
+              data-i18n="catHome"
+            >
+              Home decor
+            </option>
+
+            <option
+              value="Other cute things"
+              data-i18n="catOther"
+            >
+              Other cute things
+            </option>
+
+          </select>
+
+        </label>
+
+      </div>
+
+      <!-- NOTE -->
+      <label class="field">
+
+        <span data-i18n="noteLabel">
+          A LITTLE NOTE (OPTIONAL)
+        </span>
+
+        <input
+          id="itemNote"
+          type="text"
+          maxlength="120"
+          placeholder="Why did I fall for it?"
+        />
+
+      </label>
+
+      <!-- SAVE BUTTON -->
+      <div class="modal-actions">
+
+        <button
+          type="submit"
+          class="btn btn-yellow full"
+          data-i18n="save"
+        >
+          ♡ SAVE TO WISHLIST
+        </button>
+
+      </div>
+
+      <!-- ERROR MESSAGE -->
+      <div
+        class="form-error"
+        id="formError"
+        role="alert"
+      ></div>
+
+    </form>
+
+  </dialog>
+
+  <!-- TOAST -->
+  <div
+    class="toast"
+    id="toast"
+    role="status"
+    aria-live="polite"
+  ></div>
+
+</body>
+</html>
